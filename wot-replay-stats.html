@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Replay Ledger — WoT Battle Stats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #12140f;
+    --panel: #1a1d15;
+    --panel-2: #21251b;
+    --line: #333829;
+    --brass: #c9a227;
+    --brass-dim: #8a7220;
+    --olive: #6b7a4f;
+    --win: #6fa85a;
+    --loss: #b5533c;
+    --draw: #8a8a7a;
+    --text: #e8e6da;
+    --text-dim: #9a9c8c;
+    --text-faint: #6b6d5f;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(201,162,39,0.07), transparent 60%),
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter',sans-serif;
+    min-height:100vh;
+    padding:28px 20px 60px;
+  }
+  .wrap{max-width:1180px;margin:0 auto;}
+
+  /* ---- Header ---- */
+  header{
+    display:flex;
+    align-items:flex-end;
+    justify-content:space-between;
+    gap:20px;
+    border-bottom:1px solid var(--line);
+    padding-bottom:18px;
+    margin-bottom:22px;
+    flex-wrap:wrap;
+  }
+  .brand-eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.25em;
+    color:var(--brass-dim);
+    text-transform:uppercase;
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:32px;
+    letter-spacing:0.01em;
+    margin:0;
+    color:var(--text);
+  }
+  h1 span{color:var(--brass);}
+  .sub{
+    color:var(--text-dim);
+    font-size:13.5px;
+    margin-top:6px;
+    max-width:520px;
+    line-height:1.5;
+  }
+
+  /* ---- Load panel ---- */
+  .load-panel{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    flex-wrap:wrap;
+  }
+  .btn{
+    font-family:'Oswald',sans-serif;
+    font-weight:500;
+    font-size:14px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    background:var(--brass);
+    color:#161810;
+    border:none;
+    padding:12px 20px;
+    border-radius:2px;
+    cursor:pointer;
+    transition:filter .15s ease, transform .1s ease;
+  }
+  .btn:hover{filter:brightness(1.12);}
+  .btn:active{transform:translateY(1px);}
+  .btn.ghost{
+    background:transparent;
+    color:var(--text-dim);
+    border:1px solid var(--line);
+  }
+  .btn.ghost:hover{color:var(--text);border-color:var(--brass-dim);}
+  input[type=file]{display:none;}
+  .file-status{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--text-faint);
+  }
+
+  /* ---- Empty state ---- */
+  .empty{
+    margin-top:60px;
+    padding:60px 30px;
+    text-align:center;
+    border:1px dashed var(--line);
+    border-radius:4px;
+    color:var(--text-dim);
+  }
+  .empty .reticle{
+    width:56px;height:56px;margin:0 auto 18px;
+    border:1.5px solid var(--brass-dim);
+    border-radius:50%;
+    position:relative;
+    opacity:0.8;
+  }
+  .empty .reticle::before, .empty .reticle::after{
+    content:'';position:absolute;background:var(--brass-dim);
+  }
+  .empty .reticle::before{width:1.5px;height:70px;left:50%;top:-32px;transform:translateX(-50%);}
+  .empty .reticle::after{height:1.5px;width:70px;top:50%;left:-32px;transform:translateY(-50%);}
+  .empty h2{font-family:'Oswald',sans-serif;font-weight:500;font-size:18px;color:var(--text);margin:0 0 8px;}
+  .empty p{font-size:13.5px;max-width:420px;margin:0 auto;line-height:1.6;}
+
+  /* ---- Progress ---- */
+  .progress-wrap{margin-top:28px;display:none;}
+  .progress-wrap.active{display:block;}
+  .progress-label{
+    display:flex;justify-content:space-between;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;color:var(--text-dim);margin-bottom:6px;
+  }
+  .progress-bar{height:3px;background:var(--panel-2);border-radius:2px;overflow:hidden;}
+  .progress-fill{height:100%;background:var(--brass);width:0%;transition:width .15s ease;}
+
+  /* ---- Summary cards ---- */
+  .summary{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;
+    background:var(--line);
+    border:1px solid var(--line);
+    margin:26px 0 30px;
+  }
+  .card{
+    background:var(--panel);
+    padding:18px 20px;
+  }
+  .card .k{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.15em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+    margin-bottom:8px;
+  }
+  .card .v{
+    font-family:'Oswald',sans-serif;
+    font-size:26px;
+    font-weight:600;
+    color:var(--text);
+  }
+  .card .v.brass{color:var(--brass);}
+  .card .v.win{color:var(--win);}
+  .card .v small{font-family:'Inter',sans-serif;font-size:13px;color:var(--text-dim);font-weight:400;margin-left:2px;}
+
+  /* ---- Tabs ---- */
+  .tabs{
+    display:flex;gap:2px;margin-bottom:2px;
+  }
+  .tab{
+    font-family:'Oswald',sans-serif;
+    font-size:13px;
+    letter-spacing:0.03em;
+    text-transform:uppercase;
+    padding:10px 18px;
+    background:var(--panel);
+    color:var(--text-dim);
+    cursor:pointer;
+    border-top:2px solid transparent;
+    user-select:none;
+  }
+  .tab.active{color:var(--brass);border-top-color:var(--brass);background:var(--panel-2);}
+  .tab:hover:not(.active){color:var(--text);}
+
+  .toolbar{
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;
+    background:var(--panel-2);
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+  }
+  .search{
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    padding:8px 10px;
+    border-radius:2px;
+    min-width:220px;
+  }
+  .search:focus{outline:none;border-color:var(--brass-dim);}
+  .toolbar-right{display:flex;gap:10px;align-items:center;}
+  .row-count{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-faint);}
+
+  /* ---- Table ---- */
+  .table-wrap{
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-top:none;
+    overflow-x:auto;
+  }
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  thead th{
+    position:sticky;top:0;
+    background:var(--panel-2);
+    text-align:left;
+    padding:10px 14px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+    white-space:nowrap;
+  }
+  thead th:hover{color:var(--brass);}
+  thead th.sorted{color:var(--brass);}
+  thead th .arrow{opacity:0.6;margin-left:3px;}
+  tbody td{
+    padding:10px 14px;
+    border-bottom:1px solid var(--line);
+    color:var(--text);
+    white-space:nowrap;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+  }
+  tbody td.name-cell{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;}
+  tbody tr:hover td{background:rgba(201,162,39,0.04);}
+  .winrate-cell{display:flex;align-items:center;gap:8px;}
+  .wr-bar{width:64px;height:5px;background:var(--panel-2);border-radius:2px;overflow:hidden;flex-shrink:0;}
+  .wr-fill{height:100%;background:var(--win);}
+  .pill{
+    display:inline-block;padding:2px 8px;border-radius:2px;font-size:11px;
+    font-family:'IBM Plex Mono',monospace;letter-spacing:0.04em;
+  }
+  .pill.win{background:rgba(111,168,90,0.15);color:var(--win);}
+  .pill.loss{background:rgba(181,83,60,0.15);color:var(--loss);}
+  .pill.draw{background:rgba(138,138,122,0.15);color:var(--draw);}
+  .pill.incomplete{background:rgba(138,138,122,0.1);color:var(--text-faint);}
+  .muted{color:var(--text-faint);}
+
+  footer{
+    margin-top:30px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--text-faint);
+    text-align:center;
+    line-height:1.7;
+  }
+
+  @media (max-width:640px){
+    h1{font-size:24px;}
+    .toolbar{flex-direction:column;align-items:stretch;}
+    .search{width:100%;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <div class="brand-eyebrow">Local · Offline · Client-side only</div>
+      <h1>Replay <span>Ledger</span></h1>
+      <div class="sub">Point this at your WoT replays folder. Every file is read and parsed in your browser — nothing is uploaded anywhere. Accepts <code>.wotreplay</code> and <code>.mtreplay</code> in the same batch.</div>
+    </div>
+    <div class="load-panel">
+      <label class="btn" for="dirInput">Select Replays Folder</label>
+      <input type="file" id="dirInput" webkitdirectory directory multiple>
+      <button class="btn ghost" id="exportBtn" style="display:none;">Export CSV</button>
+      <button class="btn ghost" id="downloadAppBtn">Download This App</button>
+      <div class="file-status" id="fileStatus"></div>
+    </div>
+  </header>
+
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label"><span id="progressLabel">Parsing…</span><span id="progressCount"></span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+
+  <div class="empty" id="emptyState">
+    <div class="reticle"></div>
+    <h2>No replays loaded yet</h2>
+    <p>Click "Select Replays Folder" and choose your WoT replays directory (e.g. <code>World_of_Tanks/replays</code>). Subfolders are scanned too. Renaming <code>.mtreplay</code> to <code>.wotreplay</code> is not required — both are read directly.</p>
+  </div>
+
+  <div id="results" style="display:none;">
+    <div class="summary" id="summaryCards"></div>
+
+    <div class="tabs">
+      <div class="tab active" data-tab="map">By Map</div>
+      <div class="tab" data-tab="vehicle">By Tank</div>
+      <div class="tab" data-tab="mode">By Mode</div>
+      <div class="tab" data-tab="all">All Replays</div>
+    </div>
+    <div class="toolbar">
+      <input class="search" id="searchBox" placeholder="Filter by map, tank, or file name…">
+      <div class="toolbar-right">
+        <select class="search" id="modeFilter" style="min-width:160px;display:none;"></select>
+        <span class="row-count" id="rowCount"></span>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr id="tableHead"></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer id="footerNote"></footer>
+</div>
+
+<script>
+/* ============================= PARSING ============================= */
+
+async function parseReplayFile(file) {
+  const buf = await file.arrayBuffer();
+  const view = new DataView(buf);
+  let offset = 0;
+
+  // magic (4 bytes) + block count (4 bytes), little-endian
+  offset += 4;
+  const blockCount = view.getUint32(offset, true); offset += 4;
+
+  if (!(blockCount === 1 || blockCount === 2)) {
+    throw new Error('Unrecognized replay header (block count ' + blockCount + ')');
+  }
+
+  const blocks = [];
+  for (let i = 0; i < blockCount; i++) {
+    if (offset + 4 > buf.byteLength) throw new Error('Truncated file');
+    const len = view.getUint32(offset, true); offset += 4;
+    if (offset + len > buf.byteLength) throw new Error('Truncated JSON block');
+    const bytes = new Uint8Array(buf, offset, len);
+    offset += len;
+    const text = new TextDecoder('utf-8').decode(bytes);
+    blocks.push(JSON.parse(text));
+  }
+
+  const start = blocks[0] || {};
+  const complete = blocks.length > 1;
+  // The second block is a JSON ARRAY: [ {personal, players, vehicles, common, avatars}, {...}, {...} ]
+  // Not a plain object - this was the original bug.
+  const resultRoot = complete ? blocks[1] : null;
+  const result = (resultRoot && Array.isArray(resultRoot)) ? resultRoot[0] : resultRoot;
+
+  const record = {
+    fileName: file.name,
+    playerName: start.playerName || null,
+    vehicleRaw: start.playerVehicle || null,
+    dateTime: start.dateTime || null,
+    mapRaw: start.mapName || start.arenaName || null,
+    modeRaw: start.gameplayID || null,
+    complete: complete,
+    hasResult: false,
+    outcome: 'incomplete',
+    survived: false,
+    damage: null,
+    damageAssisted: null,
+    kills: null,
+    spotted: null,
+    xp: null,
+    credits: null,
+    shots: null,
+    hits: null,
+  };
+
+  if (complete && result) {
+    const common = result.common || {};
+    const vehicles = result.vehicles || {};
+    const personal = result.personal || {};
+    const playerID = start.playerID;
+
+    // Primary method: find the vehicle entry whose accountDBID matches the
+    // recording player's playerID. This works across game modes (Random,
+    // events, Onslaught, etc.) since every mode populates `vehicles`.
+    let own = null;
+    if (playerID !== undefined && playerID !== null) {
+      for (const vid in vehicles) {
+        const entries = vehicles[vid];
+        const arr = Array.isArray(entries) ? entries : [entries];
+        for (const entry of arr) {
+          if (entry && String(entry.accountDBID) === String(playerID)) { own = entry; break; }
+        }
+        if (own) break;
+      }
+    }
+
+    // Fallback: scan `personal` for a numeric-keyed entry that looks like
+    // real battle stats (skip the "avatar" key, which holds battle-pass /
+    // event meta info, not battle performance).
+    if (!own) {
+      for (const k in personal) {
+        if (k === 'avatar') continue;
+        const v = personal[k];
+        if (v && typeof v === 'object' && 'damageDealt' in v) { own = v; break; }
+      }
+    }
+
+    if (own) {
+      record.hasResult = true;
+      const winnerTeam = common.winnerTeam;
+      const team = own.team;
+      if (typeof winnerTeam === 'number' && winnerTeam > 0) {
+        record.outcome = (team === winnerTeam) ? 'win' : 'loss';
+      } else if (winnerTeam === 0) {
+        record.outcome = 'draw';
+      } else {
+        // Non-standard mode with no simple team-vs-team winner (e.g. some
+        // event/PvE modes) - we still show performance stats, just no W/L.
+        record.outcome = 'n/a';
+      }
+
+      record.damage = num(own.damageDealt);
+      record.damageAssisted = num(own.damageAssistedRadio) + num(own.damageAssistedTrack) + num(own.damageAssistedStun);
+      record.kills = num(own.kills);
+      record.spotted = num(own.spotted);
+      record.xp = num(own.xp);
+      record.credits = num(own.credits);
+      record.shots = num(own.shots);
+      record.hits = num(own.directHits ?? own.hits);
+
+      // deathCount === 0 means the vehicle was never destroyed that battle.
+      // Falls back to health > 0 if deathCount isn't present for some reason.
+      if (typeof own.deathCount === 'number') {
+        record.survived = own.deathCount === 0;
+      } else if (typeof own.health === 'number') {
+        record.survived = own.health > 0;
+      } else {
+        record.survived = null; // genuinely unknown
+      }
+    }
+  }
+
+  record.mapDisplay = prettyMapName(record.mapRaw);
+  record.vehicleDisplay = prettyVehicleName(record.vehicleRaw);
+  record.modeDisplay = prettyModeName(record.modeRaw);
+
+  // Onslaught and Arcade replays are identified by file name (per user),
+  // since neither has a distinguishing field in the replay's own data -
+  // both use ordinary gameplayID values shared with other modes.
+  if (/onslaught/i.test(record.fileName)) {
+    record.modeDisplay = 'Onslaught';
+  } else if (/arcade/i.test(record.fileName)) {
+    record.modeDisplay = 'Arcade';
+  }
+
+  // Map-based and vehicle-based mode detection (per user). Order matters:
+  // most specific rules first, since a couple of these modes share maps.
+  const vehRaw = record.vehicleRaw || '';
+  const mapRaw = record.mapRaw || '';
+  const mapSlug = mapRaw.toLowerCase();
+
+  if (/br_battle_city4_portal/i.test(mapSlug)) {
+    // "The Rift" uses a specific map that's otherwise a Steel Hunter map,
+    // so this check must come before the general Steel Hunter check below.
+    record.modeDisplay = 'The Rift';
+  } else if (/(^|[-_])COSM/i.test(vehRaw)) {
+    record.modeDisplay = 'Cosmic';
+  } else if (
+    /TLXXL$/i.test(vehRaw) ||
+    /Waf[_-]?Hound[_-]?3Dst$/i.test(vehRaw) ||
+    /(^|[-_])IS[-_]?7W$/i.test(vehRaw) ||
+    /Wt$/i.test(mapRaw.replace(/[_\s]+$/, ''))
+  ) {
+    // "Waffentrager" mode: identified by specific vehicles, or by maps that
+    // are "Wt"-suffixed variants of standard maps.
+    record.modeDisplay = 'Waffentrager';
+  } else if (/br_battle_city/i.test(mapSlug)) {
+    record.modeDisplay = 'Steel Hunter';
+  } else if (/(^|_)(att|nom)$/i.test(mapSlug)) {
+    // Event maps: internal slug ends with "_att" or "_nom" (event variants
+    // of standard maps, e.g. "108_normandy_nom", "14_siegfried_line_att").
+    // The underscore-anchored suffix avoids matching normal map names that
+    // merely contain "att"/"nom" as a substring elsewhere.
+    record.modeDisplay = 'Events';
+  }
+
+  return record;
+}
+
+function num(v){ return typeof v === 'number' && !isNaN(v) ? v : 0; }
+
+// Internal WoT map slugs are already descriptive (e.g. "502_kamchatka",
+// "05_prohorovka"), so rather than maintain a hand-typed name table that can
+// silently go stale or contain mistakes across game versions/regions, the
+// display name is derived directly from the slug itself. The leading number
+// is KEPT and shown, because different numeric IDs can share the same name
+// text (e.g. "44_north_america" and "45_north_america" are different maps,
+// as are "37_caucasus" and "505_caucasus") - stripping the number would
+// silently merge unrelated maps together in the stats.
+function prettyMapName(raw){
+  if (!raw) return 'Unknown map';
+  const match = raw.match(/^(\d+)_(.+)$/);
+  if (match) {
+    const number = match[1];
+    let name = match[2].replace(/_/g, ' ').trim();
+    name = name.replace(/\b\w/g, c => c.toUpperCase());
+    return `#${number} ${name}`;
+  }
+  let s = raw.replace(/_/g, ' ').trim();
+  s = s.replace(/\b\w/g, c => c.toUpperCase());
+  return s || raw;
+}
+
+const MODE_NAMES = {
+  'ctf': 'Standard Battle',
+  'domination': 'Encounter',
+  'assault': 'Assault',
+  'assault2': 'Special Battle',
+  'nations': 'Countries',
+  'sandbox': 'Sandbox',
+  'fallout': 'Steel Hunter',
+  'epic': 'Epic Battle',
+  'rts': 'Frontline',
+  'comp7': 'Ranked Battles',
+};
+function prettyModeName(raw){
+  if (!raw) return 'Unknown';
+  const key = String(raw).toLowerCase();
+  if (MODE_NAMES[key]) return MODE_NAMES[key];
+  let s = String(raw).replace(/_/g, ' ').trim();
+  return s.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function prettyVehicleName(raw){
+  if (!raw) return 'Unknown tank';
+  const parts = raw.split('-');
+  let tankPart = parts.length > 1 ? parts.slice(1).join('-') : raw;
+  tankPart = tankPart.replace(/^[A-Za-z0-9]{1,6}_/, '');
+  tankPart = tankPart.replace(/_/g, ' ').trim();
+  return tankPart || raw;
+}
+
+/* ============================= APP STATE ============================= */
+
+let allRecords = [];
+let currentTab = 'map';
+let sortState = { map: {key:'battles', dir:-1}, vehicle: {key:'battles', dir:-1}, mode: {key:'battles', dir:-1}, all: {key:'dateTime', dir:-1} };
+let searchTerm = '';
+let modeFilterValue = 'ALL';
+// "Random Battles" groups the standard matchmaking mode variants together,
+// as opposed to special modes like Onslaught, Cosmic, Waffentrager, etc.
+const RANDOM_BATTLE_MODES = ['Standard Battle', 'Assault', 'Encounter'];
+
+const dirInput = document.getElementById('dirInput');
+const fileStatus = document.getElementById('fileStatus');
+const emptyState = document.getElementById('emptyState');
+const resultsEl = document.getElementById('results');
+const progressWrap = document.getElementById('progressWrap');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const progressCount = document.getElementById('progressCount');
+const exportBtn = document.getElementById('exportBtn');
+const searchBox = document.getElementById('searchBox');
+const modeFilter = document.getElementById('modeFilter');
+const footerNote = document.getElementById('footerNote');
+
+dirInput.addEventListener('change', handleFiles);
+searchBox.addEventListener('input', () => { searchTerm = searchBox.value.toLowerCase(); renderTable(); });
+modeFilter.addEventListener('change', () => { modeFilterValue = modeFilter.value; renderTable(); });
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    currentTab = t.dataset.tab;
+    modeFilter.style.display = (currentTab === 'mode') ? 'none' : 'inline-block';
+    renderTable();
+  });
+});
+exportBtn.addEventListener('click', exportCSV);
+document.getElementById('downloadAppBtn').addEventListener('click', downloadAppCopy);
+
+function downloadAppCopy(){
+  // Saves a standalone copy of this app's current HTML/CSS/JS so it can be
+  // handed to someone else - they just open the file, no install needed.
+  const html = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+  const blob = new Blob([html], {type: 'text/html'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'wot-replay-stats.html';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function populateModeFilter(){
+  const modes = Array.from(new Set(allRecords.map(r => r.modeDisplay))).sort();
+  const hasRandomBattleModes = modes.some(m => RANDOM_BATTLE_MODES.includes(m));
+  let opts = '<option value="ALL">All Modes</option>';
+  if (hasRandomBattleModes) {
+    opts += '<option value="RANDOM_BATTLES">Random Battles (Standard, Assault, Encounter)</option>';
+  }
+  opts += modes.map(m => `<option value="${escapeHtml(m)}">${escapeHtml(m)}</option>`).join('');
+  modeFilter.innerHTML = opts;
+  modeFilter.value = 'ALL';
+  modeFilterValue = 'ALL';
+  modeFilter.style.display = (currentTab === 'mode') ? 'none' : 'inline-block';
+}
+
+async function handleFiles(e){
+  const files = Array.from(e.target.files).filter(f => {
+    const n = f.name.toLowerCase();
+    return n.endsWith('.wotreplay') || n.endsWith('.mtreplay');
+  });
+
+  if (files.length === 0){
+    fileStatus.textContent = 'No .wotreplay / .mtreplay files found in that folder.';
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  progressWrap.classList.add('active');
+  progressLabel.textContent = 'Parsing replays…';
+
+  const records = [];
+  let skipped = 0;
+  for (let i = 0; i < files.length; i++){
+    try {
+      const rec = await parseReplayFile(files[i]);
+      records.push(rec);
+    } catch(err){
+      skipped++;
+    }
+    if (i % 5 === 0 || i === files.length - 1){
+      const pct = Math.round(((i+1)/files.length)*100);
+      progressFill.style.width = pct + '%';
+      progressCount.textContent = (i+1) + ' / ' + files.length;
+      await new Promise(r => setTimeout(r, 0));
+    }
+  }
+
+  progressWrap.classList.remove('active');
+  allRecords = records;
+
+  const completeCount = records.filter(r => r.hasResult).length;
+  fileStatus.textContent = records.length + ' loaded' + (skipped ? ', ' + skipped + ' skipped (unreadable)' : '');
+  footerNote.textContent = records.length + ' replay(s) parsed · ' + completeCount + ' with full battle results · ' +
+    (records.length - completeCount) + ' incomplete (watched partially or corrupt — map/tank shown, no damage stats) · Parsed entirely client-side, no data leaves your browser.' +
+    ' * "died*" / incomplete replays are assumed not-survived, since these are typically battles left early after being destroyed.';
+
+  resultsEl.style.display = 'block';
+  exportBtn.style.display = 'inline-block';
+  populateModeFilter();
+  renderSummary();
+  renderTable();
+}
+
+/* ============================= AGGREGATION ============================= */
+
+function aggregate(records, keyFn, labelFn){
+  const groups = {};
+  for (const r of records){
+    const key = keyFn(r);
+    if (!groups[key]) groups[key] = { label: labelFn(r), battles: 0, wins: 0, losses: 0, draws: 0, incomplete: 0,
+      dmgSum:0, dmgN:0, xpSum:0, xpN:0, killSum:0, spotSum:0, assistSum:0, survivedCount:0 };
+    const g = groups[key];
+    g.battles++;
+    if (r.survived === true) g.survivedCount++;
+    if (!r.hasResult) { g.incomplete++; continue; }
+    if (r.outcome === 'win') g.wins++;
+    else if (r.outcome === 'loss') g.losses++;
+    else if (r.outcome === 'draw') g.draws++;
+    // 'n/a' outcomes (non team-vs-team modes) still count toward stat averages below
+    g.dmgSum += r.damage; g.dmgN++;
+    g.xpSum += r.xp; g.xpN++;
+    g.killSum += r.kills;
+    g.spotSum += r.spotted;
+    g.assistSum += r.damageAssisted;
+  }
+  return Object.values(groups).map(g => {
+    const decided = g.wins + g.losses;
+    return {
+      label: g.label,
+      battles: g.battles,
+      wins: g.wins,
+      losses: g.losses,
+      draws: g.draws,
+      incomplete: g.incomplete,
+      winRate: decided > 0 ? (g.wins/decided*100) : null,
+      avgDamage: g.dmgN > 0 ? g.dmgSum/g.dmgN : null,
+      avgXp: g.xpN > 0 ? g.xpSum/g.xpN : null,
+      avgKills: g.dmgN > 0 ? g.killSum/g.dmgN : null,
+      avgSpotted: g.dmgN > 0 ? g.spotSum/g.dmgN : null,
+      avgAssisted: g.dmgN > 0 ? g.assistSum/g.dmgN : null,
+      survivalRate: g.battles > 0 ? (g.survivedCount/g.battles*100) : null,
+    };
+  });
+}
+
+/* ============================= RENDER ============================= */
+
+function renderSummary(){
+  const total = allRecords.length;
+  const complete = allRecords.filter(r => r.hasResult);
+  const decided = complete.filter(r => r.outcome === 'win' || r.outcome === 'loss');
+  const wins = decided.filter(r => r.outcome === 'win').length;
+  const winRate = decided.length ? (wins/decided.length*100) : 0;
+  const avgDmg = complete.length ? complete.reduce((s,r)=>s+r.damage,0)/complete.length : 0;
+  const avgXp = complete.length ? complete.reduce((s,r)=>s+r.xp,0)/complete.length : 0;
+  const uniqueMaps = new Set(allRecords.map(r=>r.mapDisplay)).size;
+  const uniqueTanks = new Set(allRecords.map(r=>r.vehicleDisplay)).size;
+
+  const cards = [
+    {k:'Total Replays', v: total},
+    {k:'Win Rate', v: winRate.toFixed(1) + '%', cls:'win'},
+    {k:'Avg Damage', v: Math.round(avgDmg).toLocaleString(), cls:'brass'},
+    {k:'Avg XP', v: Math.round(avgXp).toLocaleString()},
+    {k:'Maps Played', v: uniqueMaps},
+    {k:'Tanks Played', v: uniqueTanks},
+  ];
+  document.getElementById('summaryCards').innerHTML = cards.map(c =>
+    `<div class="card"><div class="k">${c.k}</div><div class="v ${c.cls||''}">${c.v}</div></div>`
+  ).join('');
+}
+
+const COLUMN_SETS = {
+  map: [
+    {key:'label', label:'Map', type:'text'},
+    {key:'battles', label:'Battles', type:'num'},
+    {key:'winRate', label:'Win Rate', type:'winrate'},
+    {key:'wins', label:'W', type:'num'},
+    {key:'losses', label:'L', type:'num'},
+    {key:'draws', label:'D', type:'num'},
+    {key:'avgDamage', label:'Avg Dmg', type:'round'},
+    {key:'avgAssisted', label:'Avg Assist', type:'round'},
+    {key:'avgKills', label:'Avg Kills', type:'dec1'},
+    {key:'avgSpotted', label:'Avg Spotted', type:'dec1'},
+    {key:'avgXp', label:'Avg XP', type:'round'},
+    {key:'survivalRate', label:'Survival Rate', type:'winrate'},
+  ],
+  vehicle: [
+    {key:'label', label:'Tank', type:'text'},
+    {key:'battles', label:'Battles', type:'num'},
+    {key:'winRate', label:'Win Rate', type:'winrate'},
+    {key:'wins', label:'W', type:'num'},
+    {key:'losses', label:'L', type:'num'},
+    {key:'draws', label:'D', type:'num'},
+    {key:'avgDamage', label:'Avg Dmg', type:'round'},
+    {key:'avgAssisted', label:'Avg Assist', type:'round'},
+    {key:'avgKills', label:'Avg Kills', type:'dec1'},
+    {key:'avgSpotted', label:'Avg Spotted', type:'dec1'},
+    {key:'avgXp', label:'Avg XP', type:'round'},
+    {key:'survivalRate', label:'Survival Rate', type:'winrate'},
+  ],
+  mode: [
+    {key:'label', label:'Mode', type:'text'},
+    {key:'battles', label:'Battles', type:'num'},
+    {key:'winRate', label:'Win Rate', type:'winrate'},
+    {key:'wins', label:'W', type:'num'},
+    {key:'losses', label:'L', type:'num'},
+    {key:'draws', label:'D', type:'num'},
+    {key:'avgDamage', label:'Avg Dmg', type:'round'},
+    {key:'avgAssisted', label:'Avg Assist', type:'round'},
+    {key:'avgKills', label:'Avg Kills', type:'dec1'},
+    {key:'avgSpotted', label:'Avg Spotted', type:'dec1'},
+    {key:'avgXp', label:'Avg XP', type:'round'},
+    {key:'survivalRate', label:'Survival Rate', type:'winrate'},
+  ],
+  all: [
+    {key:'dateTime', label:'Date', type:'text'},
+    {key:'mapDisplay', label:'Map', type:'text'},
+    {key:'modeDisplay', label:'Mode', type:'text'},
+    {key:'vehicleDisplay', label:'Tank', type:'text'},
+    {key:'outcome', label:'Result', type:'outcome'},
+    {key:'damage', label:'Damage', type:'num'},
+    {key:'damageAssisted', label:'Assisted', type:'num'},
+    {key:'kills', label:'Kills', type:'num'},
+    {key:'spotted', label:'Spotted', type:'num'},
+    {key:'xp', label:'XP', type:'num'},
+    {key:'survived', label:'Survived', type:'survived'},
+    {key:'fileName', label:'File', type:'text'},
+  ]
+};
+
+function getFilteredData(){
+  let base = allRecords;
+  if (modeFilterValue === 'RANDOM_BATTLES' && currentTab !== 'mode'){
+    base = base.filter(r => RANDOM_BATTLE_MODES.includes(r.modeDisplay));
+  } else if (modeFilterValue !== 'ALL' && currentTab !== 'mode'){
+    base = base.filter(r => r.modeDisplay === modeFilterValue);
+  }
+
+  if (currentTab === 'map'){
+    let data = aggregate(base, r => r.mapDisplay, r => r.mapDisplay);
+    if (searchTerm) data = data.filter(d => d.label.toLowerCase().includes(searchTerm));
+    return data;
+  }
+  if (currentTab === 'vehicle'){
+    let data = aggregate(base, r => r.vehicleDisplay, r => r.vehicleDisplay);
+    if (searchTerm) data = data.filter(d => d.label.toLowerCase().includes(searchTerm));
+    return data;
+  }
+  if (currentTab === 'mode'){
+    let data = aggregate(allRecords, r => r.modeDisplay, r => r.modeDisplay);
+    if (searchTerm) data = data.filter(d => d.label.toLowerCase().includes(searchTerm));
+    return data;
+  }
+  // all
+  let data = base;
+  if (searchTerm){
+    data = data.filter(r =>
+      (r.mapDisplay||'').toLowerCase().includes(searchTerm) ||
+      (r.vehicleDisplay||'').toLowerCase().includes(searchTerm) ||
+      (r.modeDisplay||'').toLowerCase().includes(searchTerm) ||
+      (r.fileName||'').toLowerCase().includes(searchTerm)
+    );
+  }
+  return data;
+}
+
+function renderTable(){
+  const cols = COLUMN_SETS[currentTab];
+  const sort = sortState[currentTab];
+  let data = getFilteredData();
+
+  data = data.slice().sort((a,b) => {
+    let va = a[sort.key], vb = b[sort.key];
+    if (va === null || va === undefined) va = -Infinity;
+    if (vb === null || vb === undefined) vb = -Infinity;
+    if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb+'').toLowerCase(); }
+    if (va < vb) return -1 * sort.dir;
+    if (va > vb) return 1 * sort.dir;
+    return 0;
+  });
+
+  document.getElementById('rowCount').textContent = data.length + ' row' + (data.length===1?'':'s');
+
+  const head = document.getElementById('tableHead');
+  head.innerHTML = cols.map(c => {
+    const sorted = c.key === sort.key;
+    const arrow = sorted ? (sort.dir === 1 ? '▲' : '▼') : '';
+    return `<th data-key="${c.key}" class="${sorted?'sorted':''}">${c.label}<span class="arrow">${arrow}</span></th>`;
+  }).join('');
+  head.querySelectorAll('th').forEach(th => {
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if (sort.key === key) sort.dir *= -1;
+      else { sort.key = key; sort.dir = -1; }
+      renderTable();
+    });
+  });
+
+  const body = document.getElementById('tableBody');
+  body.innerHTML = data.map(row => {
+    return '<tr>' + cols.map(c => renderCell(row, c)).join('') + '</tr>';
+  }).join('') || `<tr><td colspan="${cols.length}" class="muted" style="padding:24px 14px;">No rows match.</td></tr>`;
+}
+
+function renderCell(row, col){
+  const v = row[col.key];
+  switch(col.type){
+    case 'text':
+      return `<td class="name-cell">${escapeHtml(v ?? '—')}</td>`;
+    case 'num':
+      return `<td>${v === null || v === undefined ? '<span class="muted">—</span>' : Math.round(v).toLocaleString()}</td>`;
+    case 'round':
+      return `<td>${v === null || v === undefined ? '<span class="muted">—</span>' : Math.round(v).toLocaleString()}</td>`;
+    case 'dec1':
+      return `<td>${v === null || v === undefined ? '<span class="muted">—</span>' : v.toFixed(1)}</td>`;
+    case 'winrate':
+      if (v === null || v === undefined) return `<td><span class="muted">—</span></td>`;
+      return `<td><div class="winrate-cell"><span>${v.toFixed(1)}%</span><div class="wr-bar"><div class="wr-fill" style="width:${Math.min(100,v)}%"></div></div></div></td>`;
+    case 'outcome':
+      if (!row.hasResult) return `<td><span class="pill incomplete">incomplete</span></td>`;
+      if (v === 'n/a') return `<td><span class="pill draw">n/a</span></td>`;
+      return `<td><span class="pill ${v}">${v}</span></td>`;
+    case 'survived':
+      if (!row.hasResult) return `<td><span class="pill loss">died*</span></td>`;
+      return v ? `<td><span class="pill win">survived</span></td>` : `<td><span class="pill loss">died</span></td>`;
+    default:
+      return `<td>${escapeHtml(v ?? '—')}</td>`;
+  }
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ============================= EXPORT ============================= */
+
+function exportCSV(){
+  const cols = COLUMN_SETS[currentTab];
+  const data = getFilteredData();
+  const header = cols.map(c => c.label).join(',');
+  const rows = data.map(row => cols.map(c => {
+    let v = row[c.key];
+    if (v === null || v === undefined) v = '';
+    if (typeof v === 'number') v = (Math.round(v*100)/100);
+    return '"' + String(v).replace(/"/g,'""') + '"';
+  }).join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'wot-replay-stats-' + currentTab + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
