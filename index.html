@@ -635,7 +635,11 @@ const assumedWrInput = document.getElementById('assumedWrInput');
 
 dirInput.addEventListener('change', handleFiles);
 searchBox.addEventListener('input', () => { searchTerm = searchBox.value.toLowerCase(); renderTable(); });
-modeFilter.addEventListener('change', () => { modeFilterValue = modeFilter.value; renderTable(); });
+modeFilter.addEventListener('change', () => {
+  modeFilterValue = modeFilter.value;
+  renderSummary();  
+  renderTable();
+});
 
 countIncompletesToggle.addEventListener('change', () => {
   countIncompletes = countIncompletesToggle.checked;
@@ -668,6 +672,17 @@ function getAssumedWinRate() {
   return v / 100; // return as 0–1
 }
 
+function getFilteredRecords() {
+  let base = allRecords;
+  // Same filtering logic as the tables
+  if (modeFilterValue === 'RANDOM_BATTLES' && currentTab !== 'mode') {
+    base = base.filter(r => RANDOM_BATTLE_MODES.includes(r.modeDisplay));
+  } else if (modeFilterValue !== 'ALL' && currentTab !== 'mode') {
+    base = base.filter(r => r.modeDisplay === modeFilterValue);
+  }
+  return base;
+}
+  
 function downloadAppCopy(){
   // Saves a standalone copy of this app's current HTML/CSS/JS so it can be
   // handed to someone else - they just open the file, no install needed.
