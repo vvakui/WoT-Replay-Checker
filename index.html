@@ -797,11 +797,12 @@ function aggregate(records, keyFn, labelFn){
 /* ============================= RENDER ============================= */
 
 function renderSummary(){
-  const total = allRecords.length;
-  const complete = allRecords.filter(r => r.hasResult);
+  const records = getFilteredRecords();          // ← now filtered by mode
+  const total = records.length;
+  const complete = records.filter(r => r.hasResult);
   const decided = complete.filter(r => r.outcome === 'win' || r.outcome === 'loss');
   const wins = decided.filter(r => r.outcome === 'win').length;
-  const incompletes = allRecords.filter(r => !r.hasResult).length;
+  const incompletes = records.filter(r => !r.hasResult).length;
 
   let winRate;
   if (countIncompletes) {
@@ -813,10 +814,10 @@ function renderSummary(){
     winRate = decided.length ? (wins / decided.length * 100) : 0;
   }
 
-  const avgDmg = complete.length ? complete.reduce((s,r)=>s+r.damage,0)/complete.length : 0;
-  const avgXp = complete.length ? complete.reduce((s,r)=>s+r.xp,0)/complete.length : 0;
-  const uniqueMaps = new Set(allRecords.map(r=>r.mapDisplay)).size;
-  const uniqueTanks = new Set(allRecords.map(r=>r.vehicleDisplay)).size;
+  const avgDmg = complete.length ? complete.reduce((s,r)=>s + r.damage, 0) / complete.length : 0;
+  const avgXp  = complete.length ? complete.reduce((s,r)=>s + r.xp, 0) / complete.length : 0;
+  const uniqueMaps  = new Set(records.map(r => r.mapDisplay)).size;
+  const uniqueTanks = new Set(records.map(r => r.vehicleDisplay)).size;
 
   const cards = [
     {k:'Total Replays', v: total},
