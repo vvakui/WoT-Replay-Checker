@@ -173,6 +173,46 @@
   .card .v.win{color:var(--win);}
   .card .v small{font-family:'Inter',sans-serif;font-size:13px;color:var(--text-dim);font-weight:400;margin-left:2px;}
 
+  /* ---- Incomplete toggle ---- */
+  .incomplete-toggle{
+    display:flex;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:10px 14px;
+    margin:18px 0 0;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    color:var(--text-dim);
+  }
+  .incomplete-toggle label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .incomplete-toggle input[type=checkbox]{
+    width:16px;
+    height:16px;
+    accent-color:var(--brass);
+    cursor:pointer;
+  }
+  .incomplete-toggle input[type=number]{
+    width:64px;
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12.5px;
+    padding:4px 6px;
+    border-radius:2px;
+    text-align:center;
+  }
+  .incomplete-toggle input[type=number]:focus{
+    outline:none;
+    border-color:var(--brass-dim);
+  }
+
   /* ---- Tabs ---- */
   .tabs{
     display:flex;gap:2px;margin-bottom:2px;
@@ -307,6 +347,16 @@
   </div>
 
   <div id="results" style="display:none;">
+    <div class="incomplete-toggle">
+      <label>
+        <input type="checkbox" id="countIncompletesToggle">
+        Count Incomplete using my WR of
+      </label>
+      <input type="number" id="assumedWrInput" value="58.5" min="0" max="100" step="0.1" title="Your account win rate (0–100)">
+      <span>%</span>
+      <span style="color:var(--text-faint);font-size:11px;">(applies to overall + maps + tanks + modes)</span>
+    </div>
+
     <div class="summary" id="summaryCards"></div>
 
     <div class="tabs">
@@ -562,6 +612,8 @@ let currentTab = 'map';
 let sortState = { map: {key:'battles', dir:-1}, vehicle: {key:'battles', dir:-1}, mode: {key:'battles', dir:-1}, all: {key:'dateTime', dir:-1} };
 let searchTerm = '';
 let modeFilterValue = 'ALL';
+let countIncompletes = false;
+
 // "Random Battles" groups the standard matchmaking mode variants together,
 // as opposed to special modes like Onslaught, Cosmic, Waffentrager, etc.
 const RANDOM_BATTLE_MODES = ['Standard Battle', 'Assault', 'Encounter'];
@@ -578,10 +630,25 @@ const exportBtn = document.getElementById('exportBtn');
 const searchBox = document.getElementById('searchBox');
 const modeFilter = document.getElementById('modeFilter');
 const footerNote = document.getElementById('footerNote');
+const countIncompletesToggle = document.getElementById('countIncompletesToggle');
+const assumedWrInput = document.getElementById('assumedWrInput');
 
 dirInput.addEventListener('change', handleFiles);
 searchBox.addEventListener('input', () => { searchTerm = searchBox.value.toLowerCase(); renderTable(); });
 modeFilter.addEventListener('change', () => { modeFilterValue = modeFilter.value; renderTable(); });
+
+countIncompletesToggle.addEventListener('change', () => {
+  countIncompletes = countIncompletesToggle.checked;
+  renderSummary();
+  renderTable();
+});
+assumedWrInput.addEventListener('input', () => {
+  if (countIncompletes) {
+    renderSummary();
+    renderTable();
+  }
+});
+
 document.querySelectorAll('.tab').forEach(t => {
   t.addEventListener('click', () => {
     document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
@@ -593,6 +660,13 @@ document.querySelectorAll('.tab').forEach(t => {
 });
 exportBtn.addEventListener('click', exportCSV);
 document.getElementById('downloadAppBtn').addEventListener('click', downloadAppCopy);
+
+function getAssumedWinRate() {
+  let v = parseFloat(assumedWrInput.value);
+  if (isNaN(v) || v < 0) v = 0;
+  if (v > 100) v = 100;
+  return v / 100; // return as 0–1
+}
 
 function downloadAppCopy(){
   // Saves a standalone copy of this app's current HTML/CSS/JS so it can be
@@ -693,6 +767,15 @@ function aggregate(records, keyFn, labelFn){
   }
   return Object.values(groups).map(g => {
     const decided = g.wins + g.losses;
+    let winRate = null;
+    if (countIncompletes) {
+      const assumed = getAssumedWinRate();
+      const effectiveWins = g.wins + g.incomplete * assumed;
+      const effectiveDecided = decided + g.incomplete;
+      winRate = effectiveDecided > 0 ? (effectiveWins / effectiveDecided * 100) : null;
+    } else {
+      winRate = decided > 0 ? (g.wins / decided * 100) : null;
+    }
     return {
       label: g.label,
       battles: g.battles,
@@ -700,7 +783,7 @@ function aggregate(records, keyFn, labelFn){
       losses: g.losses,
       draws: g.draws,
       incomplete: g.incomplete,
-      winRate: decided > 0 ? (g.wins/decided*100) : null,
+      winRate: winRate,
       avgDamage: g.dmgN > 0 ? g.dmgSum/g.dmgN : null,
       avgXp: g.xpN > 0 ? g.xpSum/g.xpN : null,
       avgKills: g.dmgN > 0 ? g.killSum/g.dmgN : null,
@@ -718,7 +801,18 @@ function renderSummary(){
   const complete = allRecords.filter(r => r.hasResult);
   const decided = complete.filter(r => r.outcome === 'win' || r.outcome === 'loss');
   const wins = decided.filter(r => r.outcome === 'win').length;
-  const winRate = decided.length ? (wins/decided.length*100) : 0;
+  const incompletes = allRecords.filter(r => !r.hasResult).length;
+
+  let winRate;
+  if (countIncompletes) {
+    const assumed = getAssumedWinRate();
+    const effectiveWins = wins + incompletes * assumed;
+    const effectiveDecided = decided.length + incompletes;
+    winRate = effectiveDecided > 0 ? (effectiveWins / effectiveDecided * 100) : 0;
+  } else {
+    winRate = decided.length ? (wins / decided.length * 100) : 0;
+  }
+
   const avgDmg = complete.length ? complete.reduce((s,r)=>s+r.damage,0)/complete.length : 0;
   const avgXp = complete.length ? complete.reduce((s,r)=>s+r.xp,0)/complete.length : 0;
   const uniqueMaps = new Set(allRecords.map(r=>r.mapDisplay)).size;
