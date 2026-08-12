@@ -422,6 +422,7 @@ async function parseReplayFile(file) {
     playerName: start.playerName || null,
     vehicleRaw: start.playerVehicle || null,
     dateTime: start.dateTime || null,
+    dateTimeSort: parseReplayDateTime(start.dateTime),
     mapRaw: start.mapName || start.arenaName || null,
     modeRaw: start.gameplayID || null,
     complete: complete,
@@ -553,6 +554,15 @@ async function parseReplayFile(file) {
 }
 
 function num(v){ return typeof v === 'number' && !isNaN(v) ? v : 0; }
+
+function parseReplayDateTime(str){
+  // World of Tanks replay dateTime format: "DD.MM.YYYY HH:MM:SS"
+  if (!str || typeof str !== 'string') return null;
+  const m = str.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+  if (!m) return null;
+  const [, day, month, year, hour, minute, second] = m.map(Number);
+  return new Date(year, month - 1, day, hour, minute, second).getTime();
+}
 
 // Internal WoT map slugs are already descriptive (e.g. "502_kamchatka",
 // "05_prohorovka"), so rather than maintain a hand-typed name table that can
@@ -948,7 +958,8 @@ function renderTable(){
   let data = getFilteredData();
 
   data = data.slice().sort((a,b) => {
-    let va = a[sort.key], vb = b[sort.key];
+    const key = sort.key === 'dateTime' ? 'dateTimeSort' : sort.key;
+    let va = a[key], vb = b[key];
     if (va === null || va === undefined) va = -Infinity;
     if (vb === null || vb === undefined) vb = -Infinity;
     if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb+'').toLowerCase(); }
