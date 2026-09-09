@@ -286,6 +286,32 @@
     font-size:12.5px;
   }
   tbody td.name-cell{font-family:'Inter',sans-serif;font-size:13px;font-weight:500;}
+
+  /* ---- Medals column ---- */
+  tr.replay-row{cursor:pointer;}
+  tr.replay-row:hover{background:rgba(201,162,39,0.06);}
+  .medal-chip-strip{display:flex;align-items:center;gap:4px;}
+  .medal-chip-icon{width:22px;height:22px;object-fit:contain;border-radius:2px;flex-shrink:0;}
+  .medal-icon-fallback{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:22px;height:22px;color:var(--brass);font-size:13px;flex-shrink:0;
+  }
+  .medal-extra{
+    font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);
+    margin-left:2px;
+  }
+  tr.medal-detail-row td{
+    background:var(--panel-2);
+    border-top:none;
+    padding:10px 16px 14px;
+  }
+  .medal-detail-empty{color:var(--text-faint);font-size:12.5px;font-style:italic;}
+  .medal-detail-list{display:flex;flex-wrap:wrap;gap:10px 18px;}
+  .medal-detail-item{display:flex;align-items:center;gap:8px;}
+  .medal-detail-icon{width:32px;height:32px;object-fit:contain;border-radius:3px;flex-shrink:0;}
+  .medal-detail-item .medal-icon-fallback{width:32px;height:32px;font-size:18px;}
+  .medal-detail-name{font-size:13px;color:var(--text);}
+  .medal-count{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--brass);}
   tbody tr:hover td{background:rgba(201,162,39,0.04);}
   .winrate-cell{display:flex;align-items:center;gap:8px;}
   .wr-bar{width:64px;height:5px;background:var(--panel-2);border-radius:2px;overflow:hidden;flex-shrink:0;}
@@ -383,6 +409,158 @@
 </div>
 
 <script>
+
+/* ============================= MEDALS DATA ============================= */
+const MEDAL_ID_TO_KEY = {"10": "battleHeroes", "14": "fragsBeast", "23": "sniperSeries", "24": "maxSniperSeries", "25": "invincibleSeries", "26": "maxInvincibleSeries", "27": "diehardSeries", "28": "maxDiehardSeries", "29": "killingSeries", "30": "maxKillingSeries", "31": "piercingSeries", "32": "maxPiercingSeries", "34": "warrior", "35": "invader", "36": "sniper", "37": "defender", "38": "steelwall", "39": "supporter", "40": "scout", "41": "medalKay", "42": "medalCarius", "43": "medalKnispel", "44": "medalPoppel", "45": "medalAbrams", "46": "medalLeClerc", "47": "medalLavrinenko", "48": "medalEkins", "49": "medalWittmann", "50": "medalOrlik", "51": "medalOskin", "52": "medalHalonen", "53": "medalBurda", "54": "medalBillotte", "55": "medalKolobanov", "56": "medalFadin", "57": "tankExpert", "58": "titleSniper", "59": "invincible", "60": "diehard", "61": "raider", "62": "handOfDeath", "63": "armorPiercer", "64": "kamikaze", "65": "lumberjack", "66": "beasthunter", "67": "mousebane", "72": "evileye", "73": "medalRadleyWalters", "74": "medalLafayettePool", "75": "medalBrunoPietro", "76": "medalTarczay", "77": "medalPascucci", "78": "medalDumitru", "79": "markOfMastery", "106": "medalLehvaslaiho", "107": "medalNikolas", "108": "fragsSinai", "109": "sinai", "110": "heroesOfRassenay", "111": "mechanicEngineer", "112": "tankExpert0", "113": "tankExpert1", "114": "tankExpert2", "115": "tankExpert3", "116": "tankExpert4", "117": "tankExpert5", "118": "tankExpert6", "119": "tankExpert7", "120": "tankExpert8", "121": "tankExpert9", "122": "tankExpert10", "123": "tankExpert11", "124": "tankExpert12", "125": "tankExpert13", "126": "tankExpert14", "127": "mechanicEngineer0", "128": "mechanicEngineer1", "129": "mechanicEngineer2", "130": "mechanicEngineer3", "131": "mechanicEngineer4", "132": "mechanicEngineer5", "133": "mechanicEngineer6", "134": "mechanicEngineer7", "135": "mechanicEngineer8", "136": "mechanicEngineer9", "137": "mechanicEngineer10", "138": "mechanicEngineer11", "139": "mechanicEngineer12", "140": "mechanicEngineer13", "141": "mechanicEngineer14", "143": "medalBrothersInArms", "144": "medalCrucialContribution", "145": "medalDeLanglade", "146": "medalTamadaYoshio", "147": "bombardier", "148": "huntsman", "149": "alaric", "150": "sturdy", "151": "ironMan", "152": "luckyDevil", "153": "fragsPatton", "154": "pattonValley", "167": "mechanicEngineerStrg", "168": "tankExpertStrg", "227": "sniper2", "228": "mainGun", "229": "wolfAmongSheep", "230": "wolfAmongSheepMedal", "231": "geniusForWar", "232": "geniusForWarMedal", "233": "kingOfTheHill", "234": "tacticalBreakthroughSeries", "235": "maxTacticalBreakthroughSeries", "236": "armoredFist", "237": "tacticalBreakthrough", "282": "guardsman", "283": "makerOfHistory", "284": "bothSidesWins", "285": "weakVehiclesWins", "286": "godOfWar", "287": "fightingReconnaissance", "288": "fightingReconnaissanceMedal", "289": "willToWinSpirit", "290": "crucialShot", "291": "crucialShotMedal", "292": "forTacticalOperations", "293": "battleCitizen", "294": "movingAvgDamage", "295": "marksOnGun", "296": "medalMonolith", "297": "medalAntiSpgFire", "298": "medalGore", "299": "medalCoolBlood", "300": "medalStark", "301": "histBattle1_battlefield", "302": "histBattle1_historyLessons", "303": "histBattle2_battlefield", "304": "histBattle2_historyLessons", "305": "histBattle3_battlefield", "306": "histBattle3_historyLessons", "307": "histBattle4_battlefield", "308": "histBattle4_historyLessons", "469": "promisingFighter", "470": "promisingFighterMedal", "471": "heavyFire", "472": "heavyFireMedal", "473": "ranger", "474": "rangerMedal", "475": "fireAndSteel", "476": "fireAndSteelMedal", "477": "pyromaniac", "478": "pyromaniacMedal", "479": "noMansLand", "480": "damageRating", "481": "citadel", "482": "conqueror", "483": "fireAndSword", "484": "crusher", "485": "counterblow", "486": "kampfer", "487": "soldierOfFortune", "488": "WFC2014WinSeries", "489": "maxWFC2014WinSeries", "490": "WFC2014", "491": "histBattle5_battlefield", "492": "histBattle5_historyLessons", "493": "histBattle6_battlefield", "494": "histBattle6_historyLessons", "495": "guerrilla", "496": "guerrillaMedal", "497": "infiltrator", "498": "infiltratorMedal", "499": "sentinel", "500": "sentinelMedal", "501": "prematureDetonation", "502": "prematureDetonationMedal", "503": "bruteForce", "504": "bruteForceMedal", "505": "awardCount", "506": "battleTested", "507": "medalRotmistrov", "517": "impenetrable", "518": "reliableComradeSeries", "519": "reliableComrade", "520": "maxAimerSeries", "521": "shootToKill", "522": "fighter", "523": "duelist", "524": "demolition", "525": "arsonist", "526": "bonecrusher", "527": "charmed", "528": "even", "529": "aimer", "533": "deathTrack", "534": "deathTrackWinSeries", "535": "maxDeathTrackWinSeries", "536": "firstMerit", "537": "tankwomen", "538": "readyForBattleLT", "539": "readyForBattleMT", "540": "readyForBattleHT", "541": "readyForBattleSPG", "542": "readyForBattleATSPG", "543": "readyForBattleALL", "544": "tankwomenProgress", "588": "operationWinter", "589": "tacticalAdvantage", "591": "tacticalSkill", "592": "secretOperations", "593": "victoryMarchClubDBID", "594": "victoryMarchSeries", "595": "maxVictoryMarchSeries", "596": "strategicOperations", "597": "victoryMarch", "598": "victoryMarch", "599": "testartilleryman", "600": "fallout", "751": "fallout2", "752": "falloutSingleWolf", "753": "falloutPackOfWolfs", "754": "falloutSteelHunter", "755": "falloutAlwaysInLine", "850": "shoulderToShoulder", "851": "aloneInTheField", "852": "fallenFlags", "853": "effectiveSupport", "854": "falloutDieHard", "855": "stormLord", "856": "winnerLaurels", "857": "predator", "858": "unreachable", "859": "champion", "860": "bannerman", "861": "deleted", "862": "moonSphere", "873": "EFC2016WinSeries", "874": "maxEFC2016WinSeries", "875": "EFC2016", "876": "EFC2016Goleador", "877": "markIProtector", "878": "markIBaseProtector", "879": "markIBomberman", "880": "markIRepairer", "881": "markI100Years", "882": "xmasTreeBronze", "883": "xmasTreeSilver", "884": "xmasTreeGold", "1106": "rankedBattlesPioneer", "1150": "HE17A1", "1151": "HE17A2", "1152": "HE17A3", "1153": "NY18A1", "1154": "NY18A2", "1155": "NY18A3", "1156": "rankedBattlesHero", "1157": "rankedBattlesSeasonOne", "1194": "occupyingForce", "1195": "ironShield", "1196": "generalOfTheArmy", "1197": "supremeGun", "1198": "smallArmy", "1199": "frontlineMedal", "1200": "rankedBattlesHeroProgress", "1201": "FE18Universal", "1202": "FE18Collection1", "1203": "FE18Collection2", "1204": "FE18Collection3", "1205": "FE18OpenRegistration", "1206": "FE18OpenPlayOff", "1207": "FE18OpenFinalStage", "1208": "FE18OpenFirstPlace", "1209": "FE18ClosedStage", "1210": "FE18SoloStriker", "1211": "FE18SoloMidfielder", "1212": "FE18SoloDefender", "1213": "medalKursk", "1214": "newMeritPM2", "1215": "readyForBattleAllianceUSSR", "1216": "readyForBattleAllianceGermany", "1217": "readyForBattleAllianceUSA", "1218": "readyForBattleAllianceFrance", "1219": "superTesterVeteran", "1220": "streamersEventUsha", "1221": "streamersEventJove", "1222": "streamersEventAmway921", "1223": "streamersEventLeBwA", "1224": "twitchPrime", "1225": "alphaTester", "1226": "betaTester", "1227": "10YearsOfService", "1228": "09YearsOfService", "1229": "08YearsOfService", "1230": "07YearsOfService", "1231": "06YearsOfService", "1232": "05YearsOfService", "1233": "04YearsOfService", "1234": "03YearsOfService", "1235": "02YearsOfService", "1236": "01YearsOfService", "1237": "NY19A1", "1238": "NY19A2", "1239": "NY19A3", "1240": "RP2018firstmed", "1241": "RP2018secondmed", "1242": "RP2018thirdmed", "1243": "RP2018sergeant", "1244": "epicBattle1", "1245": "epicBattle2", "1246": "epicBattle3", "1247": "epicBattle4", "1248": "rankedDivisionFighter", "1249": "rankedStayingPower", "1390": "DdaymarathonMedal", "1391": "twitchPrime2", "1392": "twitchPrime3", "1393": "se12019Medal", "1394": "Fest19Collection1", "1395": "Fest19Collection2", "1396": "Fest19Collection3", "1397": "twitchPrime4", "1398": "BR2019Top1Solo", "1399": "BR2019Top1Squad", "1400": "BR2019Title25", "1401": "BR2019Title15", "1402": "BR2019Title5", "1403": "october19", "1404": "Fest19Racer", "1405": "successfulFinish", "1406": "invader", "1407": "shooter", "1408": "alwaysFirst", "1409": "winnerShooter", "1410": "winnerSniper", "1411": "Fest19Offspring", "1412": "superTesterVeteranCross", "1413": "november19", "1414": "december19", "1415": "NY20A1", "1416": "NY20A2", "1417": "NY20A3", "1418": "january20", "1420": "february20", "1421": "medalBobLebwa", "1422": "medalBobYusha", "1423": "medalBobAmway921", "1424": "medalBobKorbenDallas", "1425": "medalBobMailand", "1426": "medalBobSkill4ltu", "1427": "medalBobDezgamez", "1428": "medalBobAwesomeEpicGuys", "1429": "medalBobTigers", "1430": "medalBobDragons", "1431": "rankedDivisionCounter", "1432": "rankedStayingCounter", "1433": "march20", "1434": "bootcampMedal", "1435": "BattlePassCommonPr_1", "1437": "collectorVehicleStrg", "1438": "collectorVehicle", "1439": "collectorVehicle0", "1440": "collectorVehicle1", "1441": "collectorVehicle2", "1442": "collectorVehicle3", "1443": "collectorVehicle4", "1444": "collectorVehicle5", "1445": "collectorVehicle6", "1446": "collectorVehicle7", "1447": "collectorVehicle8", "1448": "collectorVehicle9", "1449": "collectorVehicle10", "1450": "collectorVehicle11", "1451": "collectorVehicle12", "1452": "collectorVehicle13", "1453": "collectorVehicle14", "1454": "TenYearsCountdownParticipation", "1455": "TenYearsCountdownStageMedal", "1456": "se2020Medal", "1457": "marksOfMasteryCount1", "1458": "marksOfMasteryCount2", "1459": "marksOfMasteryCount3", "1460": "marksOfMasteryCount4", "1461": "june20", "1462": "BattlePassCommonPr_2", "1463": "TenYearsCountdownSPGEventMedal", "1464": "TenYearsCountdownBrawlMedal", "1465": "dedicationMedal1", "1466": "dedicationMedal2", "1467": "dedicationMedal3", "1468": "dedicationMedal4", "1469": "betaTester_cn", "1470": "BigAnniversaryMedal_CN", "1471": "september20", "1472": "BattlePassCommonPr_3", "1473": "wtHunterWins", "1474": "wtBossWins", "1475": "wtSpecBossDefeat", "1481": "hw2019Medal", "1482": "hw2019Medal1", "1483": "hw2019Medal2", "1484": "hw2019Medal3", "1485": "october20", "1486": "RP2018sergeantCounter", "1487": "NY21_AtmsphrLevel", "1488": "NY21_CelebChallenge", "1489": "january21", "1490": "bob2021Lebwa_ru", "1491": "bob2021Yusha_ru", "1492": "bob2021Amway921_ru", "1493": "bob2021KorbenDallas_ru", "1494": "bob2021NearYou_ru", "1495": "bob2021EvilGranny_ru", "1496": "bob2021Vspishka_ru", "1497": "bob2021Inspirer_ru", "1498": "bob2021Circon_eu", "1499": "bob2021Dakillzor_eu", "1500": "bob2021NewMulti2k_eu", "1501": "bob2021Orzanel_eu", "1502": "bob2021Cabbagemechanic_na", "1503": "bob2021TragicLoss_na", "1504": "bob2021CmdrAF_na", "1505": "bob2021MasterTortoise_apac", "1506": "bob2021SummerTiger_apac", "1507": "bob2021Maharlika_apac", "1508": "february21", "1509": "BattlePassCommonPr_4", "1510": "march21", "1511": "april21", "1512": "gagarin21", "1513": "may21", "1514": "june21", "1552": "BattlePassCommonPr_5", "1553": "mapboxSeason1", "1554": "mapboxSeason2", "1555": "mapboxSeason3", "1556": "july21", "1557": "august21", "1558": "BattlePassCommonPr_6", "1559": "september21", "1560": "wtxHunterWins", "1561": "wtxBossWins", "1562": "wtxSpecBossDefeat", "1563": "steamBattleCredits", "1564": "steamLittleSavingsMedal", "1565": "steamMintedCoinMedal", "1566": "steamKingMidasMedal", "1567": "steamBattleXP", "1568": "steamGoodStudentMedal", "1569": "steamBattleHardenedMedal", "1570": "steamExperienceMedal", "1571": "steamFreeXP", "1572": "steamHandyMedal", "1573": "steamUniversalResourceMedal", "1574": "steamPowerKnowledgeMedal", "1575": "steamSuchWorkMedal", "1576": "steamNothingPersonalMedal", "1577": "steamTheBeginningMedal", "1578": "steamMasteryMarks", "1579": "steamGetMaxMedal", "1580": "steamThreeCheersMedal", "1581": "steamGoldenFiveMedal", "1582": "steamNotPerfectMedal", "1583": "steamForWarriorMedal", "1584": "steamForSteelWallMedal", "1585": "steamForBonecrusherMedal", "1586": "steamOrderMedal", "1587": "steamSpottedMedal", "1588": "steamFighterMedal", "1589": "steamBasePoints", "1590": "steamBasePointsMedal", "1591": "steamHardCharacter", "1592": "steamHardCharacterMedal", "1593": "steamMedium", "1594": "steamMediumMedal", "1595": "steamATSPG", "1596": "steamATSPGMedal", "1597": "steamDieHardMedal", "1598": "steamDestroyerMedal", "1599": "steamMediumPerformanceMedal", "1600": "steamReconnoiter", "1601": "steamReconnoiterMedal", "1602": "steamPotentialStun", "1603": "steamPotentialStunMedal", "1604": "steamMileage", "1605": "steamMileageMedal", "1606": "steamHorizonSupportMedal", "1607": "steamSmallSupportMedal", "1608": "steamBreakThrough", "1609": "steamBreakThroughMedal", "1610": "steamStop", "1611": "steamStopMedal", "1612": "steamRandomFightMedal", "1613": "steamMainGunMedal", "1614": "steamShootToKillMedal", "1615": "steamBruteForceMedal", "1616": "steamGuerrillaMedal", "1617": "steamImpenetrableMedal", "1618": "steamTurnOffMedal", "1619": "steamRadioMedal", "1620": "steamLastHeroMedal", "1621": "steamTopLeague", "1622": "steamTopLeagueMedal", "1623": "steamBootcampMedal", "1624": "steamBriefingMedal", "1625": "steamGetTankLevel5Medal", "1626": "steamGetTankLevel6Medal", "1627": "steamGetTankLevel7Medal", "1628": "steamGetTankLevel8Medal", "1629": "steamGetTankLevel9Medal", "1630": "steamGetTankLevel10Medal", "1631": "steamDoPotapovQuestMedal", "1632": "steamDoAllBranchPotapovQuestMedal", "1633": "steamDoOperationMedal", "1634": "steamEquipTypeMedal", "1635": "steamShellTypeMedal", "1636": "steamSpotted", "1637": "steamFrags", "1638": "steamBattleHeroes", "1639": "whiteTiger2012", "1640": "october21", "1641": "hw2021Medal1", "1642": "hw2021Medal2", "1643": "november21", "1644": "11YearsOfService", "1645": "NY22_AtmsphrLevel", "1646": "NY22_CelebChallenge", "1647": "december21", "1648": "lunarNY2022Progression", "1649": "BattlePassCommonPr_7", "1650": "oowTankmanWins", "1651": "oowStrategistWins", "1652": "oowCompetetiveWin", "1653": "oowCBTParticipant", "1654": "mapboxUniversal", "1655": "june22", "1656": "wclTournamentParticipant", "1657": "wclParticipant", "1658": "BattlePassCommonPr_8", "1659": "BattlePassCommonPr_8ru", "1660": "BattlePassCommonPr_8quest", "1661": "july22", "1662": "august22", "1663": "BattlePassCommonPr_9", "1664": "september22", "1665": "october22", "1666": "november22", "1667": "december22", "1668": "january23", "1669": "february23", "1670": "march23", "1671": "april23", "1672": "may23", "1673": "june23", "1674": "july23", "1675": "august23", "1676": "wt2022HunterWins", "1677": "wt2022BossWins", "1678": "wt2022SpecBossDefeat", "1728": "comp7Season1", "1729": "hw2022Medal01", "1730": "hw2022Medal02", "1731": "12YearsOfService", "1732": "NY23_AtmsphrLevel", "1733": "NY23_CelebChallenge", "1734": "BattlePassCommonPr_NY23", "1735": "BattlePassCommonPr_10", "1785": "comp7_2023_1", "1786": "Cosmic_MartianStalker", "1787": "Cosmic_SpaceTrace", "1792": "BattlePassCommonPr_11", "1793": "september23", "1794": "december23", "1795": "january24", "1796": "february24", "1797": "march24", "1798": "prime_gaming_reserved_18", "1799": "prime_gaming_reserved_19", "1800": "prime_gaming_reserved_20", "1801": "prime_gaming_reserved_21", "1802": "prime_gaming_reserved_22", "1803": "prime_gaming_reserved_23", "1804": "prime_gaming_reserved_24", "1805": "onboardingMedal", "1806": "BattlePassCommonPr_12", "1862": "comp7_3_1", "1914": "wt2023HunterWins", "1915": "wt2023BossWins", "1916": "wt2023MaxPlasma", "1917": "hw2023Medal", "1918": "BattlePassCommonPr_12extra", "1919": "13YearsOfService", "1920": "NY24_CelebChallenge", "1921": "NY24_AtmsphrLevel", "1922": "comp7_3_2", "1923": "BattlePassCommonPr_NY24", "1924": "BattlePassCommonPr_13", "1925": "comp7_3_3", "1926": "comp7_3_yearly_iron", "1927": "comp7_3_yearly_bronze", "1928": "comp7_3_yearly_silver", "1929": "comp7_3_yearly_gold", "1930": "comp7_3_yearly_champion", "1931": "comp7_3_yearly_legend", "1932": "Cosmic_StarTrekCrew", "1933": "Cosmic_LiveLongAndProsper", "1934": "Cosmic_KlingonValor", "1935": "BattlePassCommonPr_14", "1938": "dDayFighter", "1939": "BattlePassCommonPr_15", "1940": "comp7_4_1", "1941": "comp7_4_2", "1942": "comp7_4_3", "1943": "comp7_4_yearly_iron", "1944": "comp7_4_yearly_bronze", "1945": "comp7_4_yearly_silver", "1946": "comp7_4_yearly_gold", "1947": "comp7_4_yearly_champion", "1948": "comp7_4_yearly_legend", "2000": "wt2024HunterWins", "2001": "wt2024BossWins", "2002": "wt2024HunterWinsEpic", "2003": "mapboxClimateExpert", "2004": "hw2024Medal", "2005": "BattlePassCommonPr_15extra", "2006": "NY25_AtmsphrLevel", "2007": "NY25_CelebChallenge", "2008": "14YearsOfService", "2009": "BattlePassCommonPr_NY25", "2010": "BattlePassCommonPr_16", "2011": "BattlePassCommonPr_17", "2012": "BattlePassCommonPr_17extra_1", "2013": "BattlePassCommonPr_17extra_2", "2014": "BattlePassCommonPr_17extra_3", "2015": "BattlePassCommonPr_18", "2016": "BattlePassCommonPr_18extra_1", "2017": "BattlePassCommonPr_18extra_2", "2018": "BattlePassCommonPr_NY26", "2019": "BattlePassCommonPr_19", "2020": "BattlePassCommonPr_20", "2021": "vDayHero", "2022": "ls2025Medal", "2024": "wot15thAnniversary", "2025": "wot15thAnniversaryElite", "2026": "meritPM3", "2027": "readyForBattleAssault", "2028": "readyForBattleSniper", "2029": "readyForBattleSupport", "2081": "comp7_5_1", "2082": "comp7_5_2", "2083": "comp7_5_3", "2084": "comp7_5_yearly_iron", "2085": "comp7_5_yearly_bronze", "2086": "comp7_5_yearly_silver", "2087": "comp7_5_yearly_gold", "2088": "comp7_5_yearly_champion", "2089": "comp7_5_yearly_legend", "2090": "ls2_0Medal", "2091": "sccHero", "2092": "steamGetTankLevel11Medal", "2093": "wt2025progression", "2094": "twoPointZeroMedal", "2095": "twoPointZeroCollectorMedal", "2096": "hw2025Medal", "2097": "NY26_AtmsphrLevel", "2098": "NY26_CelebChallenge", "2099": "grinch_medal_2026", "2100": "15YearsOfService", "2101": "LunarNY2026CN", "2102": "BPReserveAchievement_1", "2103": "BPReserveAchievement_2", "2104": "BPReserveAchievement_3", "2105": "BPReserveAchievement_4", "2106": "BPReserveAchievement_5", "2107": "BPReserveAchievement_6", "2108": "BPReserveAchievement_7", "2109": "BPReserveAchievement_9", "2110": "wot16thAnniversary"};
+const MEDAL_TIERED_KEYS = {"FE18ClosedStage": 4, "FE18SoloDefender": 4, "FE18SoloMidfielder": 4, "FE18SoloStriker": 4, "RP2018sergeant": 4, "TenYearsCountdownStageMedal": 5, "battleTested": 4, "conqueror": 4, "fireAndSword": 4, "forTacticalOperations": 4, "guardsman": 4, "kampfer": 4, "lunarNY2022Progression": 5, "makerOfHistory": 4, "markI100Years": 4, "markOfMastery": 4, "medalAbrams": 4, "medalCarius": 4, "medalEkins": 4, "medalKay": 4, "medalKnispel": 4, "medalLavrinenko": 4, "medalLeClerc": 4, "medalPoppel": 4, "medalRotmistrov": 4, "rankedDivisionFighter": 4, "rankedStayingPower": 4, "readyForBattleALL": 4, "readyForBattleATSPG": 4, "readyForBattleAllianceFrance": 3, "readyForBattleAllianceGermany": 3, "readyForBattleAllianceUSA": 3, "readyForBattleAllianceUSSR": 3, "readyForBattleAssault": 3, "readyForBattleHT": 4, "readyForBattleLT": 4, "readyForBattleMT": 4, "readyForBattleSPG": 4, "readyForBattleSniper": 3, "readyForBattleSupport": 3, "soldierOfFortune": 4, "stormLord": 4, "strategicOperations": 4, "superTesterVeteran": 4, "superTesterVeteranCross": 4, "winnerLaurels": 4};
+const MEDAL_ICON_PLAIN = ["01YearsOfService", "02YearsOfService", "03YearsOfService", "04YearsOfService", "05YearsOfService", "06YearsOfService", "07YearsOfService", "08YearsOfService", "09YearsOfService", "10YearsOfService", "11YearsOfService", "12YearsOfService", "13YearsOfService", "14YearsOfService", "15YearsOfService", "BPReserveAchievement_1", "BPReserveAchievement_2", "BPReserveAchievement_3", "BPReserveAchievement_4", "BPReserveAchievement_5", "BPReserveAchievement_6", "BPReserveAchievement_7", "BPReserveAchievement_9", "BR2019Title15", "BR2019Title25", "BR2019Title5", "BR2019Top1Solo", "BR2019Top1Squad", "BattlePassCommonPr_1", "BattlePassCommonPr_10", "BattlePassCommonPr_11", "BattlePassCommonPr_12", "BattlePassCommonPr_12extra", "BattlePassCommonPr_13", "BattlePassCommonPr_14", "BattlePassCommonPr_15", "BattlePassCommonPr_15extra", "BattlePassCommonPr_16", "BattlePassCommonPr_17", "BattlePassCommonPr_17extra_1", "BattlePassCommonPr_17extra_2", "BattlePassCommonPr_17extra_3", "BattlePassCommonPr_18", "BattlePassCommonPr_18extra_1", "BattlePassCommonPr_18extra_2", "BattlePassCommonPr_19", "BattlePassCommonPr_2", "BattlePassCommonPr_20", "BattlePassCommonPr_3", "BattlePassCommonPr_4", "BattlePassCommonPr_5", "BattlePassCommonPr_6", "BattlePassCommonPr_7", "BattlePassCommonPr_8", "BattlePassCommonPr_8quest", "BattlePassCommonPr_8ru", "BattlePassCommonPr_9", "BattlePassCommonPr_NY23", "BattlePassCommonPr_NY24", "BattlePassCommonPr_NY25", "BattlePassCommonPr_NY26", "BigAnniversaryMedal_CN", "Cosmic_KlingonValor", "Cosmic_LiveLongAndProsper", "Cosmic_MartianStalker", "Cosmic_SpaceTrace", "Cosmic_StarTrekCrew", "DdaymarathonMedal", "EFC2016", "EFC2016Goleador", "FE18Collection1", "FE18Collection2", "FE18Collection3", "FE18OpenFinalStage", "FE18OpenFirstPlace", "FE18OpenPlayOff", "FE18OpenRegistration", "FE18Universal", "Fest19Collection1", "Fest19Collection2", "Fest19Collection3", "Fest19Offspring", "Fest19Racer", "HE17A1", "HE17A2", "HE17A3", "LunarNY2026CN", "NY18A1", "NY18A2", "NY18A3", "NY19A1", "NY19A2", "NY19A3", "NY20A1", "NY20A2", "NY20A3", "NY21_AtmsphrLevel", "NY21_CelebChallenge", "NY22_AtmsphrLevel", "NY22_CelebChallenge", "NY23_AtmsphrLevel", "NY23_CelebChallenge", "NY24_AtmsphrLevel", "NY24_CelebChallenge", "NY25_AtmsphrLevel", "NY25_CelebChallenge", "NY26_AtmsphrLevel", "NY26_CelebChallenge", "RP2018firstmed", "RP2018secondmed", "RP2018thirdmed", "TenYearsCountdownBrawlMedal", "TenYearsCountdownParticipation", "TenYearsCountdownSPGEventMedal", "WFC2014", "aimer", "aloneInTheField", "alphaTester", "april21", "armorPiercer", "armoredFist", "arsonist", "august21", "august22", "bannerman", "battleCitizen", "beasthunter", "betaTester", "betaTester_cn", "bob2021Amway921_ru", "bob2021Cabbagemechanic_na", "bob2021Circon_eu", "bob2021CmdrAF_na", "bob2021Dakillzor_eu", "bob2021EvilGranny_ru", "bob2021Inspirer_ru", "bob2021KorbenDallas_ru", "bob2021Lebwa_ru", "bob2021Maharlika_apac", "bob2021MasterTortoise_apac", "bob2021NearYou_ru", "bob2021NewMulti2k_eu", "bob2021Orzanel_eu", "bob2021SummerTiger_apac", "bob2021TragicLoss_na", "bob2021Vspishka_ru", "bob2021Yusha_ru", "bombardier", "bonecrusher", "bootcampMedal", "bruteForceMedal", "champion", "charmed", "collectorVehicle", "collectorVehicle0", "collectorVehicle1", "collectorVehicle10", "collectorVehicle2", "collectorVehicle3", "collectorVehicle4", "collectorVehicle5", "collectorVehicle6", "collectorVehicle7", "collectorVehicle8", "collectorVehicle9", "comp7Season1", "comp7_2023_1", "comp7_3_1", "comp7_3_2", "comp7_3_3", "comp7_3_yearly_bronze", "comp7_3_yearly_champion", "comp7_3_yearly_gold", "comp7_3_yearly_iron", "comp7_3_yearly_legend", "comp7_3_yearly_silver", "comp7_4_1", "comp7_4_2", "comp7_4_3", "comp7_4_yearly_bronze", "comp7_4_yearly_champion", "comp7_4_yearly_gold", "comp7_4_yearly_iron", "comp7_4_yearly_legend", "comp7_4_yearly_silver", "comp7_5_1", "comp7_5_2", "comp7_5_3", "comp7_5_yearly_bronze", "comp7_5_yearly_champion", "comp7_5_yearly_gold", "comp7_5_yearly_iron", "comp7_5_yearly_legend", "comp7_5_yearly_silver", "counterblow", "crucialShotMedal", "crusher", "dDayFighter", "deathTrack", "december19", "december21", "december22", "dedicationMedal1", "dedicationMedal2", "dedicationMedal3", "dedicationMedal4", "defender", "demolition", "diehard", "duelist", "effectiveSupport", "epicBattle1", "epicBattle2", "epicBattle3", "epicBattle4", "even", "evileye", "fallenFlags", "fallout", "fallout2", "falloutAlwaysInLine", "falloutDieHard", "falloutPackOfWolfs", "falloutSingleWolf", "falloutSteelHunter", "february20", "february21", "fighter", "fightingReconnaissanceMedal", "fireAndSteelMedal", "firstMerit", "frontlineMedal", "gagarin21", "generalOfTheArmy", "geniusForWarMedal", "godOfWar", "grinch_medal_2026", "guerrillaMedal", "handOfDeath", "heavyFireMedal", "heroesOfRassenay", "histBattle1_battlefield", "histBattle1_historyLessons", "histBattle2_battlefield", "histBattle2_historyLessons", "histBattle3_battlefield", "histBattle3_historyLessons", "histBattle4_battlefield", "histBattle4_historyLessons", "histBattle5_battlefield", "histBattle5_historyLessons", "histBattle6_battlefield", "histBattle6_historyLessons", "huntsman", "hw2019Medal", "hw2019Medal1", "hw2019Medal2", "hw2019Medal3", "hw2021Medal1", "hw2021Medal2", "hw2022Medal01", "hw2022Medal02", "hw2023Medal", "hw2024Medal", "hw2025Medal", "impenetrable", "infiltratorMedal", "invader", "invincible", "ironMan", "ironShield", "january20", "january21", "january23", "july21", "july22", "june20", "june21", "june22", "kamikaze", "kingOfTheHill", "ls2025Medal", "ls2_0Medal", "luckyDevil", "lumberjack", "mainGun", "mapboxClimateExpert", "mapboxSeason1", "mapboxSeason2", "mapboxSeason3", "mapboxUniversal", "march20", "march21", "markIBaseProtector", "markIBomberman", "markIProtector", "markIRepairer", "maxAimerSeries", "may21", "mechanicEngineer", "mechanicEngineer0", "mechanicEngineer1", "mechanicEngineer10", "mechanicEngineer2", "mechanicEngineer3", "mechanicEngineer4", "mechanicEngineer5", "mechanicEngineer6", "mechanicEngineer7", "mechanicEngineer8", "mechanicEngineer9", "medalAntiSpgFire", "medalBillotte", "medalBobAmway921", "medalBobAwesomeEpicGuys", "medalBobDezgamez", "medalBobDragons", "medalBobKorbenDallas", "medalBobLebwa", "medalBobMailand", "medalBobSkill4ltu", "medalBobTigers", "medalBobYusha", "medalBrothersInArms", "medalBrunoPietro", "medalBurda", "medalCoolBlood", "medalCrucialContribution", "medalDeLanglade", "medalDumitru", "medalFadin", "medalGore", "medalHalonen", "medalKolobanov", "medalKursk", "medalLafayettePool", "medalLehvaslaiho", "medalMonolith", "medalNikolas", "medalOrlik", "medalOskin", "medalPascucci", "medalRadleyWalters", "medalStark", "medalTamadaYoshio", "medalTarczay", "medalWittmann", "meritPM3", "moonSphere", "mousebane", "newMeritPM2", "noMansLand", "november19", "november21", "november22", "occupyingForce", "october19", "october20", "october21", "october22", "onboardingMedal", "oowCBTParticipant", "oowCompetetiveWin", "oowStrategistWins", "oowTankmanWins", "operationWinter", "pattonValley", "predator", "prematureDetonationMedal", "promisingFighterMedal", "pyromaniacMedal", "raider", "rangerMedal", "rankedBattlesHero", "rankedBattlesHeroProgress", "rankedBattlesPioneer", "rankedBattlesSeasonOne", "reliableComrade", "sccHero", "scout", "se12019Medal", "se2020Medal", "secretOperations", "sentinelMedal", "september20", "september21", "september22", "shootToKill", "shoulderToShoulder", "sinai", "smallArmy", "sniper", "sniper2", "steelwall", "streamersEventAmway921", "streamersEventJove", "streamersEventLeBwA", "streamersEventUsha", "sturdy", "supporter", "supremeGun", "tacticalAdvantage", "tacticalBreakthrough", "tacticalSkill", "tankExpert", "tankExpert0", "tankExpert1", "tankExpert10", "tankExpert2", "tankExpert3", "tankExpert4", "tankExpert5", "tankExpert6", "tankExpert7", "tankExpert8", "tankExpert9", "tankwomen", "testartilleryman", "titleSniper", "twitchPrime", "twitchPrime2", "twitchPrime3", "twitchPrime4", "twoPointZeroMedal", "unreachable", "vDayHero", "victoryMarch", "warrior", "wclParticipant", "wclTournamentParticipant", "whiteTiger2012", "willToWinSpirit", "wolfAmongSheepMedal", "wot15thAnniversary", "wot15thAnniversaryElite", "wot16thAnniversary", "wt2022BossWins", "wt2022HunterWins", "wt2022SpecBossDefeat", "wt2023BossWins", "wt2023HunterWins", "wt2023MaxPlasma", "wt2024BossWins", "wt2024HunterWins", "wt2024HunterWinsEpic", "wt2025progression", "wtBossWins", "wtHunterWins", "wtSpecBossDefeat", "wtxBossWins", "wtxHunterWins", "wtxSpecBossDefeat", "xmasTreeBronze", "xmasTreeGold", "xmasTreeSilver"];
+
+// Hand-curated display names for the medals players most commonly earn.
+// Anything not listed here falls back to an automatic prettifier (see
+// prettifyMedalKey below), which does a reasonable job on the rest.
+const MEDAL_NAME_OVERRIDES = {
+  // Class / role medals
+  warrior: "Warrior", invader: "Invader", sniper: "Sniper", defender: "Defender",
+  steelwall: "Steel Wall", supporter: "Supporter", scout: "Scout",
+  raider: "Raider", kamikaze: "Kamikaze", bombardier: "Bombardier", huntsman: "Huntsman",
+  sturdy: "Sturdy", ironMan: "Iron Man", luckyDevil: "Lucky", lumberjack: "Lumberjack",
+  shootToKill: "Sniper's Shoot to Kill", fighter: "Fighter", duelist: "Duelist",
+  demolition: "Demolition", arsonist: "Arsonist", bonecrusher: "Bonecrusher",
+  impenetrable: "Impenetrable", reliableComrade: "Reliable Comrade",
+  charmed: "Charmed", evileye: "Evil Eye", handOfDeath: "Hand of Death",
+  crusher: "Crusher", counterblow: "Counterblow", diehard: "Diehard",
+  aimer: "Aimer", armorPiercer: "Armor Piercer", armoredFist: "Armored Fist",
+  fireAndSteel: "Fire and Steel", fireAndSword: "Fire and Sword",
+  firstMerit: "First Merit", generalOfTheArmy: "General of the Army",
+  guardsman: "Guardsman", conqueror: "Conqueror", crucialShot: "Crucial Shot",
+  guerrilla: "Guerrilla", heavyFire: "Heavy Fire", fightingReconnaissance: "Fighting Reconnaissance",
+  geniusForWar: "Genius for War", forTacticalOperations: "For Tactical Operations",
+  wolfAmongSheepMedal: "Wolf Among Sheep", crucialShotMedal: "Crucial Shot",
+  fightingReconnaissanceMedal: "Fighting Reconnaissance", geniusForWarMedal: "Genius for War",
+  heavyFireMedal: "Heavy Fire", guerrillaMedal: "Guerrilla", infiltrator: "Infiltrator",
+  infiltratorMedal: "Infiltrator", sentinelMedal: "Sentinel", bruteForce: "Brute Force",
+  bruteForceMedal: "Brute Force", prematureDetonationMedal: "Premature Detonation",
+  rangerMedal: "Ranger", promisingFighterMedal: "Promising Fighter",
+  bothSidesWins: "Both Sides Win", alwaysFirst: "Always First", battleTested: "Battle Tested",
+  battleHeroes: "Battle Hero", awardCount: "Award Count", damageRating: "Damage Rating",
+  movingAvgDamage: "Damage Log", marksOnGun: "Marks of Excellence", markOfMastery: "Mastery Badge",
+  tankExpert: "Tank Expert", mechanicEngineer: "Mechanic Engineer",
+  citadel: "Citadel", champion: "Champion", frontlineMedal: "Frontline Medal",
+  beasthunter: "Beast Hunter", bannerman: "Bannerman", deathTrack: "Death Track",
+  fallenFlags: "Fallen Flags", godOfWar: "God of War", heroesOfRassenay: "Heroes of Rassenay",
+  makerOfHistory: "Maker of History", kampfer: "Kämpfer", guardian: "Guardian",
+
+  // Named "X's Medal" achievements — the classic distinguished-tanker awards
+  medalKay: "Kay's Medal", medalCarius: "Carius's Medal", medalKnispel: "Knispel's Medal",
+  medalPoppel: "Poppel's Medal", medalEkins: "Ekins's Medal", medalLeClerc: "Leclerc's Medal",
+  medalLavrinenko: "Lavrinenko's Medal", medalAbrams: "Abrams's Medal",
+  medalWittmann: "Wittmann's Medal", medalRadleyWalters: "Radley-Walters's Medal",
+  medalLafayettePool: "Lafayette Pool's Medal", medalBillotte: "Billotte's Medal",
+  medalBrunoPietro: "Bruno Pietro's Medal", medalTarczay: "Tarczay's Medal",
+  medalBurda: "Burda's Medal", medalPascucci: "Pascucci's Medal",
+  medalDumitru: "Dumitru's Medal", medalOskin: "Oskin's Medal",
+  medalLehvaslaiho: "Lehväslaiho's Medal", medalNikolas: "Nicols's Medal",
+  medalBrothersInArms: "Brothers in Arms", medalCrucialContribution: "Crucial Contribution Medal",
+  medalOrlik: "Orlik's Medal", medalHalonen: "Halonen's Medal",
+  medalKolobanov: "Kolobanov's Medal", medalFadin: "Fadin's Medal",
+  medalDeLanglade: "de Langlade's Medal", medalTamadaYoshio: "Tamada Yoshio's Medal",
+  medalRotmistrov: "Rotmistrov's Medal", medalMonolith: "Monolith's Medal",
+  medalAntiSpgFire: "Anti-SPG Fire Medal", medalGore: "Gore's Medal",
+  medalCoolBlood: "Cool-Blooded Medal", medalStark: "Stark's Medal",
+
+  // Steam-linked variants (same medal, earned via Steam achievement)
+  steamShootToKillMedal: "Sniper's Shoot to Kill (Steam)",
+  steamLastHeroMedal: "Last Hero (Steam)", steamGuerrillaMedal: "Guerrilla (Steam)",
+  steamShellTypeMedal: "Ammo Expert (Steam)",
+};
+
+// Fallback: turn an unrecognized internal medal codename into a readable
+// title. Handles "medalXxx" person-named medals reasonably (X's Medal),
+// and generically spaces out camelCase / underscores for everything else.
+function prettifyMedalKey(key) {
+  if (MEDAL_NAME_OVERRIDES[key]) return MEDAL_NAME_OVERRIDES[key];
+
+  const spaceOut = (s) => s
+    .replace(/_/g, ' ')
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (/^medal[A-Z]/.test(key)) {
+    const remainder = key.slice(5);
+    const words = spaceOut(remainder).split(' ').filter(Boolean);
+    if (words.length === 1) {
+      return words[0] + "'s Medal";
+    }
+    const titled = words.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+    return titled + ' Medal';
+  }
+
+  const spaced = spaceOut(key);
+  return spaced.replace(/\b\w/g, c => c.toUpperCase());
+}
+
+function getMedalDisplayName(key) {
+  return MEDAL_NAME_OVERRIDES[key] || prettifyMedalKey(key);
+}
+
+
+// Resolves the raw numeric `achievements` array from a replay's personal
+// battle-result block into displayable medal info: name, icon path, and
+// how many times it was earned that battle (duplicates do happen, e.g.
+// getting the same tank-destroyer medal on two separate kills).
+const MEDAL_ICON_BASE = 'icons/48x48/';
+
+function resolveMedals(achievementIds, dossierRecords) {
+  if (!Array.isArray(achievementIds) || achievementIds.length === 0) return [];
+
+  // dossierRecords is an array of [id, value] pairs (dossierLogRecords /
+  // dossierPopUps). For tiered medals (Mastery-style, class 1-4), `value`
+  // tells us which class icon to show.
+  const valueById = {};
+  if (Array.isArray(dossierRecords)) {
+    for (const pair of dossierRecords) {
+      if (Array.isArray(pair) && pair.length >= 2) valueById[pair[0]] = pair[1];
+    }
+  }
+
+  const counts = {};
+  for (const id of achievementIds) counts[id] = (counts[id] || 0) + 1;
+
+  const medals = [];
+  for (const idStr in counts) {
+    const id = Number(idStr);
+    const key = MEDAL_ID_TO_KEY[id];
+    const count = counts[idStr];
+
+    if (!key) {
+      medals.push({ id, key: null, name: 'Unknown Medal #' + id, icon: null, count });
+      continue;
+    }
+
+    const name = getMedalDisplayName(key);
+    let icon = null;
+    if (MEDAL_TIERED_KEYS.hasOwnProperty(key)) {
+      const maxTier = MEDAL_TIERED_KEYS[key];
+      let tier = valueById[id];
+      if (typeof tier !== 'number' || tier < 1 || tier > maxTier) tier = 1;
+      icon = MEDAL_ICON_BASE + key + tier + '.png';
+    } else if (MEDAL_ICON_PLAIN.includes(key)) {
+      icon = MEDAL_ICON_BASE + key + '.png';
+    }
+
+    medals.push({ id, key, name, icon, count });
+  }
+
+  // Most "impressive"/rare medals tend to have higher IDs in practice for
+  // named/person medals, but there's no reliable rarity ordering available,
+  // so just sort alphabetically by name for a stable, scannable order.
+  medals.sort((a, b) => a.name.localeCompare(b.name));
+  return medals;
+}
+
+
 /* ============================= PARSING ============================= */
 
 async function parseReplayFile(file) {
@@ -508,8 +686,17 @@ async function parseReplayFile(file) {
       } else {
         record.survived = null; // genuinely unknown
       }
+
+      // Medals earned this battle. `achievements` holds the raw numeric
+      // medal IDs (can contain duplicates if the same medal was earned
+      // more than once). `dossierLogRecords`/`dossierPopUps` pair some of
+      // those IDs with a value, which for tiered medals (Mastery-style)
+      // tells us which class icon to use.
+      const dossierRecords = own.dossierLogRecords || own.dossierPopUps || [];
+      record.medals = resolveMedals(own.achievements, dossierRecords);
     }
   }
+  if (!record.medals) record.medals = [];
 
   record.mapDisplay = prettyMapName(record.mapRaw);
   record.vehicleDisplay = prettyVehicleName(record.vehicleRaw);
@@ -628,6 +815,7 @@ let sortState = { map: {key:'battles', dir:-1}, vehicle: {key:'battles', dir:-1}
 let searchTerm = '';
 let modeFilterValue = 'ALL';
 let countIncompletes = false;
+let expandedMedalRows = new Set(); // keys of "all" tab rows with medal dropdown open
 
 // "Random Battles" groups the standard matchmaking mode variants together,
 // as opposed to special modes like Onslaught, Cosmic, Waffentrager, etc.
@@ -759,6 +947,7 @@ async function handleFiles(e){
 
   progressWrap.classList.remove('active');
   allRecords = records;
+  expandedMedalRows.clear();
 
   const completeCount = records.filter(r => r.hasResult).length;
   fileStatus.textContent = records.length + ' loaded' + (skipped ? ', ' + skipped + ' skipped (unreadable)' : '');
@@ -917,6 +1106,7 @@ const COLUMN_SETS = {
     {key:'spotted', label:'Spotted', type:'num'},
     {key:'xp', label:'Base XP', type:'num'},
     {key:'survived', label:'Survived', type:'survived'},
+    {key:'medals', label:'Medals', type:'medals'},
     {key:'fileName', label:'File', type:'text'},
   ]
 };
@@ -951,10 +1141,18 @@ function getFilteredData(){
       (r.mapDisplay||'').toLowerCase().includes(searchTerm) ||
       (r.vehicleDisplay||'').toLowerCase().includes(searchTerm) ||
       (r.modeDisplay||'').toLowerCase().includes(searchTerm) ||
-      (r.fileName||'').toLowerCase().includes(searchTerm)
+      (r.fileName||'').toLowerCase().includes(searchTerm) ||
+      (r.medals||[]).some(m => m.name.toLowerCase().includes(searchTerm))
     );
   }
   return data;
+}
+
+// Stable per-row identity for the "all" tab, used to remember which rows
+// have their medal dropdown expanded across re-renders (sorting/filtering
+// can reorder the array, so a plain index would point at the wrong row).
+function rowMedalKey(row){
+  return (row.fileName || '') + '|' + (row.dateTimeSort || '');
 }
 
 function renderTable(){
@@ -965,6 +1163,7 @@ function renderTable(){
   data = data.slice().sort((a,b) => {
     const key = sort.key === 'dateTime' ? 'dateTimeSort' : sort.key;
     let va = a[key], vb = b[key];
+    if (key === 'medals') { va = (va||[]).length; vb = (vb||[]).length; }
     if (va === null || va === undefined) va = -Infinity;
     if (vb === null || vb === undefined) vb = -Infinity;
     if (typeof va === 'string') { va = va.toLowerCase(); vb = (vb+'').toLowerCase(); }
@@ -991,9 +1190,43 @@ function renderTable(){
   });
 
   const body = document.getElementById('tableBody');
+  const isAll = currentTab === 'all';
+
   body.innerHTML = data.map(row => {
-    return '<tr>' + cols.map(c => renderCell(row, c)).join('') + '</tr>';
+    const mainRow = '<tr' + (isAll ? ' class="replay-row" data-medal-key="' + escapeHtml(rowMedalKey(row)) + '"' : '') + '>' +
+      cols.map(c => renderCell(row, c)).join('') + '</tr>';
+    if (!isAll) return mainRow;
+
+    const key = rowMedalKey(row);
+    if (!expandedMedalRows.has(key)) return mainRow;
+
+    const medals = row.medals || [];
+    let detailContent;
+    if (medals.length === 0) {
+      detailContent = '<div class="medal-detail-empty">No medals earned this battle.</div>';
+    } else {
+      detailContent = '<div class="medal-detail-list">' + medals.map(m => {
+        const iconHtml = m.icon
+          ? `<img class="medal-detail-icon" src="${escapeHtml(m.icon)}" alt="" onerror="this.style.visibility='hidden'">`
+          : `<span class="medal-detail-icon medal-icon-fallback">★</span>`;
+        const countHtml = m.count > 1 ? ` <span class="medal-count">×${m.count}</span>` : '';
+        return `<div class="medal-detail-item">${iconHtml}<span class="medal-detail-name">${escapeHtml(m.name)}</span>${countHtml}</div>`;
+      }).join('') + '</div>';
+    }
+    const detailRow = `<tr class="medal-detail-row"><td colspan="${cols.length}">${detailContent}</td></tr>`;
+    return mainRow + detailRow;
   }).join('') || `<tr><td colspan="${cols.length}" class="muted" style="padding:24px 14px;">No rows match.</td></tr>`;
+
+  if (isAll) {
+    body.querySelectorAll('tr.replay-row').forEach(tr => {
+      tr.addEventListener('click', () => {
+        const key = tr.dataset.medalKey;
+        if (expandedMedalRows.has(key)) expandedMedalRows.delete(key);
+        else expandedMedalRows.add(key);
+        renderTable();
+      });
+    });
+  }
 }
 
 function renderCell(row, col){
@@ -1017,6 +1250,21 @@ function renderCell(row, col){
     case 'survived':
       if (!row.hasResult) return `<td><span class="pill loss">died*</span></td>`;
       return v ? `<td><span class="pill win">survived</span></td>` : `<td><span class="pill loss">died</span></td>`;
+    case 'medals': {
+      const medals = v || [];
+      if (medals.length === 0) return `<td><span class="muted">—</span></td>`;
+      const MAX_ICONS = 4;
+      const shown = medals.slice(0, MAX_ICONS);
+      const extra = medals.length - shown.length;
+      const iconsHtml = shown.map(m => {
+        const title = escapeHtml(m.name + (m.count > 1 ? ' ×' + m.count : ''));
+        return m.icon
+          ? `<img class="medal-chip-icon" src="${escapeHtml(m.icon)}" alt="" title="${title}" onerror="this.style.visibility='hidden'">`
+          : `<span class="medal-chip-icon medal-icon-fallback" title="${title}">★</span>`;
+      }).join('');
+      const extraHtml = extra > 0 ? `<span class="medal-extra">+${extra}</span>` : '';
+      return `<td><div class="medal-chip-strip">${iconsHtml}${extraHtml}</div></td>`;
+    }
     default:
       return `<td>${escapeHtml(v ?? '—')}</td>`;
   }
@@ -1034,6 +1282,9 @@ function exportCSV(){
   const header = cols.map(c => c.label).join(',');
   const rows = data.map(row => cols.map(c => {
     let v = row[c.key];
+    if (c.type === 'medals') {
+      v = (v || []).map(m => m.name + (m.count > 1 ? ' x' + m.count : '')).join('; ');
+    }
     if (v === null || v === undefined) v = '';
     if (typeof v === 'number') v = (Math.round(v*100)/100);
     return '"' + String(v).replace(/"/g,'""') + '"';
