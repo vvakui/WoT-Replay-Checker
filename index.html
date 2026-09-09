@@ -391,7 +391,7 @@
       <div class="tab active" data-tab="all">All Replays</div>
     </div>
     <div class="toolbar">
-      <input class="search" id="searchBox" placeholder="Filter by map, tank, or file name…">
+      <input class="search" id="searchBox" placeholder="Filter by map, tank, medal, or file name…">
       <div class="toolbar-right">
         <select class="search" id="modeFilter" style="min-width: 160px; display: inline-block;"><option value="ALL">All Modes</option><option value="RANDOM_BATTLES">Random Battles (Standard, Assault, Encounter)</option><option value="Arcade">Arcade</option><option value="Assault">Assault</option><option value="Bob">Bob</option><option value="Cosmic">Cosmic</option><option value="Ctf30x30">Ctf30x30</option><option value="Encounter">Encounter</option><option value="Epic Battle">Epic Battle</option><option value="Events">Events</option><option value="Maps Training">Maps Training</option><option value="Onslaught">Onslaught</option><option value="Special Battle">Special Battle</option><option value="Standard Battle">Standard Battle</option><option value="Steel Hunter">Steel Hunter</option><option value="The Rift">The Rift</option><option value="Waffentrager">Waffentrager</option></select>
         <span class="row-count" id="rowCount">13434 rows</span>
@@ -512,8 +512,8 @@ function getMedalDisplayName(key) {
 // getting the same tank-destroyer medal on two separate kills).
 const MEDAL_ICON_BASE = 'icons/48x48/';
 
-function resolveMedals(achievementIds, dossierRecords) {
-  if (!Array.isArray(achievementIds) || achievementIds.length === 0) return [];
+function resolveMedals(achievementIds, dossierRecords, markOfMasteryValue, prevMarkOfMasteryValue) {
+  if (!Array.isArray(achievementIds) && !Number.isInteger(markOfMasteryValue)) return [];
 
   // dossierRecords is an array of [id, value] pairs (dossierLogRecords /
   // dossierPopUps). For tiered medals (Mastery-style, class 1-4), `value`
@@ -525,8 +525,20 @@ function resolveMedals(achievementIds, dossierRecords) {
     }
   }
 
+  // Mastery Badge is special: the replay result contains its tier directly
+  // in personal.markOfMastery. The achievements array may also contain ID 79,
+  // but it is not safe to depend on that alone.
+  if (Number.isInteger(markOfMasteryValue) && markOfMasteryValue >= 1 && markOfMasteryValue <= 4) {
+    valueById[79] = markOfMasteryValue;
+  }
+
+  const ids = Array.isArray(achievementIds) ? achievementIds.slice() : [];
+  if (Number.isInteger(markOfMasteryValue) && markOfMasteryValue >= 1 && markOfMasteryValue <= 4 && !ids.includes(79)) {
+    ids.push(79);
+  }
+
   const counts = {};
-  for (const id of achievementIds) counts[id] = (counts[id] || 0) + 1;
+  for (const id of ids) counts[id] = (counts[id] || 0) + 1;
 
   const medals = [];
   for (const idStr in counts) {
@@ -545,13 +557,39 @@ function resolveMedals(achievementIds, dossierRecords) {
     // them here rather than showing a confusing duplicate with no icon.
     if (/^steam[A-Z]/.test(key)) continue;
 
-    const name = getMedalDisplayName(key);
-    let icon = null;
+    let tier = null;
     if (MEDAL_TIERED_KEYS.hasOwnProperty(key)) {
       const maxTier = MEDAL_TIERED_KEYS[key];
-      let tier = valueById[id];
+      tier = valueById[id];
       if (typeof tier !== 'number' || tier < 1 || tier > maxTier) tier = 1;
-      icon = MEDAL_ICON_BASE + key + tier + '.png';
+    }
+
+    let name = getMedalDisplayName(key);
+    if (key === 'markOfMastery' && tier !== null) {
+      const masteryNames = {
+        1: 'Mastery Badge: Class III',
+        2: 'Mastery Badge: Class II',
+        3: 'Mastery Badge: Class I',
+        4: 'Mastery Badge: Ace Tanker'
+      };
+      name = masteryNames[tier] || name;
+    }
+
+    let icon = null;
+    if (MEDAL_TIERED_KEYS.hasOwnProperty(key)) {
+      // Mastery Badge has a special "record" icon the first time a new
+      // Mastery class is achieved. In the replay result, prevMarkOfMastery
+      // is the highest class owned before this battle, while markOfMastery
+      // is the class reached in this battle. If the new class is higher,
+      // use markOfMastery<tier>record.png instead of the normal icon.
+      if (key === 'markOfMastery' &&
+          Number.isInteger(prevMarkOfMasteryValue) &&
+          Number.isInteger(markOfMasteryValue) &&
+          markOfMasteryValue > prevMarkOfMasteryValue) {
+        icon = MEDAL_ICON_BASE + key + tier + 'record.png';
+      } else {
+        icon = MEDAL_ICON_BASE + key + tier + '.png';
+      }
     } else if (MEDAL_ICON_PLAIN.includes(key)) {
       icon = MEDAL_ICON_BASE + key + '.png';
     }
@@ -699,7 +737,7 @@ async function parseReplayFile(file) {
       // those IDs with a value, which for tiered medals (Mastery-style)
       // tells us which class icon to use.
       const dossierRecords = own.dossierLogRecords || own.dossierPopUps || [];
-      record.medals = resolveMedals(own.achievements, dossierRecords);
+      record.medals = resolveMedals(own.achievements, dossierRecords, own.markOfMastery, own.prevMarkOfMastery);
     }
   }
   if (!record.medals) record.medals = [];
@@ -1148,7 +1186,10 @@ function getFilteredData(){
       (r.vehicleDisplay||'').toLowerCase().includes(searchTerm) ||
       (r.modeDisplay||'').toLowerCase().includes(searchTerm) ||
       (r.fileName||'').toLowerCase().includes(searchTerm) ||
-      (r.medals||[]).some(m => m.name.toLowerCase().includes(searchTerm))
+      (r.medals||[]).some(m =>
+        m.name.toLowerCase().includes(searchTerm) ||
+        (m.key||'').toLowerCase().includes(searchTerm)
+      )
     );
   }
   return data;
