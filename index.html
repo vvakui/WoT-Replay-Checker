@@ -731,13 +731,19 @@ async function parseReplayFile(file) {
         record.survived = null; // genuinely unknown
       }
 
-      // Medals earned this battle. `achievements` holds the raw numeric
-      // medal IDs (can contain duplicates if the same medal was earned
-      // more than once). `dossierLogRecords`/`dossierPopUps` pair some of
-      // those IDs with a value, which for tiered medals (Mastery-style)
-      // tells us which class icon to use.
-      const dossierRecords = own.dossierLogRecords || own.dossierPopUps || [];
-      record.medals = resolveMedals(own.achievements, dossierRecords, own.markOfMastery, own.prevMarkOfMastery);
+      // Medals are stored in the PERSONAL result for the recording player,
+      // not in the vehicle entry used above for battle performance stats.
+      // This is especially important for Mastery Badges: markOfMastery and
+      // prevMarkOfMastery live in personal[playerID].
+      const personalOwn = personal[String(playerID)] || personal[playerID] || {};
+      const medalSource = personalOwn.achievements ? personalOwn : own;
+      const dossierRecords = medalSource.dossierLogRecords || medalSource.dossierPopUps || [];
+      record.medals = resolveMedals(
+        medalSource.achievements,
+        dossierRecords,
+        medalSource.markOfMastery,
+        medalSource.prevMarkOfMastery
+      );
     }
   }
   if (!record.medals) record.medals = [];
