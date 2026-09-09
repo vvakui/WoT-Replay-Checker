@@ -539,6 +539,12 @@ function resolveMedals(achievementIds, dossierRecords) {
       continue;
     }
 
+    // Steam-linked achievement IDs (e.g. "steamShootToKillMedal") are fired
+    // alongside the real medal ID (e.g. "shootToKill") purely to unlock the
+    // matching Steam achievement - they aren't a distinct medal, so skip
+    // them here rather than showing a confusing duplicate with no icon.
+    if (/^steam[A-Z]/.test(key)) continue;
+
     const name = getMedalDisplayName(key);
     let icon = null;
     if (MEDAL_TIERED_KEYS.hasOwnProperty(key)) {
