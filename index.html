@@ -687,6 +687,22 @@ async function parseReplayFile(file) {
     }
 
     if (own) {
+      // The `vehicles` entry (used above to find `own`) carries most battle
+      // stats but NOT markOfMastery/dossierLogRecords/dossierPopUps/marksOnGun -
+      // those only live on the `personal` block's own-vehicle entry. Merge
+      // them in so mastery-badge resolution below actually has data to work
+      // with. (Only fills gaps - never overwrites fields `own` already has.)
+      for (const k in personal) {
+        if (k === 'avatar') continue;
+        const p = personal[k];
+        if (!p || typeof p !== 'object') continue;
+        if (own.markOfMastery === undefined && 'markOfMastery' in p) own.markOfMastery = p.markOfMastery;
+        if (own.marksOnGun === undefined && 'marksOnGun' in p) own.marksOnGun = p.marksOnGun;
+        if (own.dossierLogRecords === undefined && 'dossierLogRecords' in p) own.dossierLogRecords = p.dossierLogRecords;
+        if (own.dossierPopUps === undefined && 'dossierPopUps' in p) own.dossierPopUps = p.dossierPopUps;
+        break; // `personal` holds exactly one non-avatar entry for the recording player
+      }
+
       record.hasResult = true;
       const winnerTeam = common.winnerTeam;
       const team = own.team;
