@@ -21,6 +21,56 @@
     --text-dim: #9a9c8c;
     --text-faint: #6b6d5f;
   }
+
+  /* ---- Alternate color themes ---- */
+  /* "Steel Blue" - cool monochrome + electric-blue accent */
+  html[data-theme="steel"]{
+    --bg: #0d0f14;
+    --panel: #161a22;
+    --panel-2: #1c212b;
+    --line: #2c3542;
+    --brass: #4fc3f7;
+    --brass-dim: #2f8fc0;
+    --olive: #5a7a9a;
+    --win: #4fae8a;
+    --loss: #e06666;
+    --draw: #8a94a0;
+    --text: #e6ecf2;
+    --text-dim: #97a3b0;
+    --text-faint: #5f6a76;
+  }
+  /* "Sepia Ledger" - warm vintage sepia/brown */
+  html[data-theme="sepia"]{
+    --bg: #1c1410;
+    --panel: #2a1f17;
+    --panel-2: #34281d;
+    --line: #4a3a2a;
+    --brass: #d4a94f;
+    --brass-dim: #9c7838;
+    --olive: #8a6f4a;
+    --win: #7a9a5a;
+    --loss: #a8563e;
+    --draw: #9c8a70;
+    --text: #ede0c8;
+    --text-dim: #b8a888;
+    --text-faint: #7a6c54;
+  }
+  /* "Teal Noir" - dark teal/black with orange-red accent */
+  html[data-theme="teal"]{
+    --bg: #0a1414;
+    --panel: #10201f;
+    --panel-2: #142a28;
+    --line: #1f3a38;
+    --brass: #2dd4bf;
+    --brass-dim: #1f9b8c;
+    --olive: #3a8a80;
+    --win: #4fbf9f;
+    --loss: #e0654a;
+    --draw: #8aa8a4;
+    --text: #e0f2f0;
+    --text-dim: #93b3af;
+    --text-faint: #5c7876;
+  }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
@@ -250,6 +300,42 @@
   }
   .search:focus{outline:none;border-color:var(--brass-dim);}
   .toolbar-right{display:flex;gap:10px;align-items:center;}
+
+  /* ---- Theme switcher (fixed, top-right of the page) ---- */
+  .theme-switch{
+    position:fixed;
+    top:16px;
+    right:20px;
+    z-index:50;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    border-radius:2px;
+    padding:6px 10px;
+  }
+  .theme-switch label{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10.5px;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--text-faint);
+  }
+  .theme-switch select{
+    background:var(--bg);
+    border:1px solid var(--line);
+    color:var(--text);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    padding:5px 8px;
+    border-radius:2px;
+    cursor:pointer;
+  }
+  .theme-switch select:focus{outline:none;border-color:var(--brass-dim);}
+  @media (max-width: 720px){
+    .theme-switch{ position:static; margin-bottom:14px; width:fit-content; }
+  }
   .row-count{font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--text-faint);}
 
   /* ---- Table ---- */
@@ -343,6 +429,15 @@
 </style>
 </head>
 <body>
+<div class="theme-switch">
+  <label for="themeSelect">Theme</label>
+  <select id="themeSelect">
+    <option value="default">Default (Brass)</option>
+    <option value="steel">Steel Blue</option>
+    <option value="sepia">Sepia Ledger</option>
+    <option value="teal">Teal Noir</option>
+  </select>
+</div>
 <div class="wrap">
 
   <header>
@@ -932,6 +1027,33 @@ document.querySelectorAll('.tab').forEach(t => {
   });
 });
 exportBtn.addEventListener('click', exportCSV);
+
+// ---- Theme switcher ----
+// Persisted so the choice survives page reloads. This is a plain static
+// site (not a sandboxed preview), so localStorage works normally here.
+(function initThemeSwitcher(){
+  const THEME_KEY = 'replayLedgerTheme';
+  const select = document.getElementById('themeSelect');
+  let saved = 'default';
+  try { saved = localStorage.getItem(THEME_KEY) || 'default'; } catch (e) {}
+
+  function applyTheme(theme) {
+    if (theme === 'default') {
+      document.documentElement.removeAttribute('data-theme');
+    } else {
+      document.documentElement.setAttribute('data-theme', theme);
+    }
+  }
+
+  applyTheme(saved);
+  select.value = saved;
+
+  select.addEventListener('change', () => {
+    const theme = select.value;
+    applyTheme(theme);
+    try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+  });
+})();
 document.getElementById('downloadAppBtn').addEventListener('click', downloadAppCopy);
 
 function getAssumedWinRate() {
